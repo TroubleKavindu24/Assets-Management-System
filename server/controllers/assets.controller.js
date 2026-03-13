@@ -128,6 +128,34 @@ exports.asset_allocation = async (req, res) => {
   }
 };
 
+// Get all asset allocations
+exports.getAllAllocations = async (req, res) => {
+  try {
+    const allocations = await AssetAllocation.findAll({
+      include: [
+        { model: Asset, attributes: ["id", "asset_type", "serial_no", "brand"] },
+        // If you have Department and User models, include them here:
+        // { model: Department, attributes: ["id", "name"] },
+        // { model: User, attributes: ["id", "name", "email"] }
+      ],
+      order: [["allocated_date", "DESC"]],
+    });
+
+    if (!allocations || allocations.length === 0) {
+      return res.status(404).json({ message: "No allocations found" });
+    }
+
+    return res.status(200).json({
+      message: "Allocations retrieved successfully",
+      count: allocations.length,
+      data: allocations,
+    });
+
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 exports.asset_handover = async (req, res) => {
   try {
     const {
