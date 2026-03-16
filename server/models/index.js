@@ -16,15 +16,23 @@ User.belongsTo(Department, { foreignKey: "department_id" });
 
 /* Department → AssetRequest */
 Department.hasMany(AssetRequest, { foreignKey: "department_id" });
+AssetRequest.belongsTo(Department, { foreignKey: "department_id" });
+
+/* Department → AssetAllocation */
+Department.hasMany(AssetAllocation, { foreignKey: "department_id" });
+AssetAllocation.belongsTo(Department, { foreignKey: "department_id" });
 
 /* Asset → Allocation */
 Asset.hasMany(AssetAllocation, { foreignKey: "asset_id" });
+AssetAllocation.belongsTo(Asset, { foreignKey: "asset_id" });
 
 /* AssetRequest → Allocation */
 AssetRequest.hasMany(AssetAllocation, { foreignKey: "req_id" });
+AssetAllocation.belongsTo(AssetRequest, { foreignKey: "req_id" });
 
 /* Asset → Handover */
 Asset.hasMany(HandoverRequest, { foreignKey: "asset_id" });
+HandoverRequest.belongsTo(Asset, { foreignKey: "asset_id" });
 
 module.exports = {
   Branch,

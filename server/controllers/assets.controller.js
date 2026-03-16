@@ -2,6 +2,8 @@ const Asset = require("../models/Asset.js");
 const AssetAllocation = require("../models/AssetAllocation.js");
 const HandoverRequest = require("../models/HandoverRequest.js");
 const AssetRequest = require("../models/AssetRequest.js");
+const Department = require("../models/Department.js");
+const User = require("../models/User.js")
 
 const DEPARTMENTS = [
   "IT",
@@ -128,31 +130,16 @@ exports.asset_allocation = async (req, res) => {
   }
 };
 
-// Get all asset allocations
 exports.getAllAllocations = async (req, res) => {
   try {
-    const allocations = await AssetAllocation.findAll({
-      include: [
-        { model: Asset, attributes: ["id", "asset_type", "serial_no", "brand"] },
-        // If you have Department and User models, include them here:
-        // { model: Department, attributes: ["id", "name"] },
-        // { model: User, attributes: ["id", "name", "email"] }
-      ],
-      order: [["allocated_date", "DESC"]],
+    const requests = await AssetAllocation.findAll({
+      order: [["allocation_id", "DESC"]]
     });
 
-    if (!allocations || allocations.length === 0) {
-      return res.status(404).json({ message: "No allocations found" });
-    }
-
-    return res.status(200).json({
-      message: "Allocations retrieved successfully",
-      count: allocations.length,
-      data: allocations,
-    });
+    res.status(200).json(requests);
 
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    res.status(500).json({ error: error.message });
   }
 };
 
