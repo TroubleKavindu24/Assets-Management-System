@@ -13,6 +13,10 @@ const AssetAllocation = sequelize.define(
     type: DataTypes.STRING,
     allowNull: false,
   },
+  serial_no: {
+    type: DataTypes.STRING(100),
+    allowNull: false,
+  },
   // req_id: {
   //   type: DataTypes.STRING,
   //   allowNull: false,

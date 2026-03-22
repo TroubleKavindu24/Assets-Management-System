@@ -23,41 +23,49 @@ const AddAssetForm = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage('');
-    setError('');
-    setLoading(true);
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    try {
-      const response = await fetch('http://localhost:5005/api/assets/add-asset', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+  if (!formData.asset_type || !formData.serial_no.trim()) {
+    setError("Asset type and serial number are required");
+    return;
+  }
 
-      const result = await response.json();
+  setMessage('');
+  setError('');
+  setLoading(true);
 
-      if (!response.ok) {
-        throw new Error(result.message || 'Something went wrong');
-      }
+  try {
+    const response = await fetch('http://localhost:5005/api/assets/add-asset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...formData,
+        serial_no: formData.serial_no.trim(),
+      }),
+    });
 
-      setMessage('Asset added successfully!');
-      setFormData({
-        asset_type: '',
-        serial_no: '',
-        brand: '',
-        os: '',
-        purchase_date: '',
-      });
-    } catch (err) {
-      setError(err.message || 'Failed to add asset');
-    } finally {
-      setLoading(false);
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
     }
-  };
+
+    setMessage('Asset added successfully!');
+    setFormData({
+      asset_type: '',
+      serial_no: '',
+      brand: '',
+      os: '',
+      purchase_date: '',
+    });
+
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="add-asset-container">

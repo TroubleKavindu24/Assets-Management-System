@@ -1,9 +1,7 @@
 const { DataTypes } = require("sequelize");
 const {sequelize} = require("../config/db");
 
-const Asset = sequelize.define(
-  "Asset", 
-  {
+const Asset = sequelize.define("Asset", {
   asset_id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
@@ -11,18 +9,23 @@ const Asset = sequelize.define(
   },
   serial_no: {
     type: DataTypes.STRING(100),
-    unique: true,
     allowNull: false,
+    unique: true,
+    validate: {
+      notEmpty: true,
+    },
   },
   asset_type: {
-    type: DataTypes.STRING(50),
+    type: DataTypes.ENUM("Laptop", "Machine", "Printer", "Other"),
     allowNull: false,
   },
   brand: {
     type: DataTypes.STRING(50),
+    defaultValue: "N/A",
   },
   os: {
     type: DataTypes.STRING(50),
+    defaultValue: "N/A",
   },
   purchase_date: {
     type: DataTypes.DATE,
@@ -33,7 +36,7 @@ const Asset = sequelize.define(
   },
 }, {
   tableName: "assets",
-  timestamps: false,
+  timestamps: true,   // ✅ enable this
   underscored: true,
 });
 

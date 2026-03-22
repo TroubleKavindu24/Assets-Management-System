@@ -23,7 +23,7 @@ const ASSET_TYPES = [
 
 exports.add = async (req, res) => {
   try {
-    const {
+    let {
       asset_type,
       serial_no,
       brand,
@@ -31,23 +31,34 @@ exports.add = async (req, res) => {
       purchase_date
     } = req.body;
 
-    // Validation
+    // Trim inputs
+    serial_no = serial_no?.trim();
+    brand = brand?.trim();
+    os = os?.trim();
+
+    // Required validation
     if (!asset_type || !serial_no) {
-      return res.status(400).json({ message: "Required fields missing" });
+      return res.status(400).json({ message: "Asset type and serial number are required" });
+    }
+
+    // Validate asset type
+    const validTypes = ["Laptop", "Machine", "Printer", "Other"];
+    if (!validTypes.includes(asset_type)) {
+      return res.status(400).json({ message: "Invalid asset type" });
     }
 
     // Prevent duplicate serial numbers
     const existing = await Asset.findOne({ where: { serial_no } });
     if (existing) {
-      return res.status(409).json({ message: "Asset already exists" });
+      return res.status(409).json({ message: "Serial number already exists" });
     }
 
     const asset = await Asset.create({
       asset_type,
       serial_no,
-      brand,
-      os,
-      purchase_date,
+      brand: brand || "N/A",
+      os: os || "N/A",
+      purchase_date: purchase_date || null,
       status: "AVAILABLE"
     });
 
@@ -57,7 +68,8 @@ exports.add = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
