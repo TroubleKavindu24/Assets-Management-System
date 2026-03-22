@@ -49,7 +49,7 @@ const AllocateAssetForm = () => {
     try {
       setLoadingAssets(true);
       const res = await axios.get(
-        `http://localhost:5005/api/assets/available-by-type/${type}`
+        `http://localhost:5005/api/assets/asset-available/${type}`
       );
       setAvailableAssets(res.data.data);
     } catch (err) {
@@ -80,7 +80,7 @@ const AllocateAssetForm = () => {
 
     try {
       const res = await axios.post(
-        "http://localhost:5005/api/assets/allocate",
+        "http://localhost:5005/api/assets/asset-allocation",
         formData
       );
 

@@ -6,7 +6,7 @@ router.post("/add-asset", assetController.add);
 router.get("/assetsList", assetController.getAllAssets);
 
 router.post("/asset-allocation", assetController.allocateAsset);
-router.post("/asset-available", assetController.getAvailableAssetsByType);
+router.get("/asset-available/:type", assetController.getAvailableAssetsByType);
 
 router.post("/asset-handover", assetController.asset_handover);
 router.get("/serial/:serial_no", assetController.getAssetDetailsBySerialNo);
