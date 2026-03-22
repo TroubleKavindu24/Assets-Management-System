@@ -6,9 +6,11 @@ router.post("/add-asset", assetController.add);
 router.get("/assetsList", assetController.getAllAssets);
 
 router.post("/asset-allocation", assetController.allocateAsset);
+router.post("/asset-available", assetController.getAvailableAssetsByType);
+
 router.post("/asset-handover", assetController.asset_handover);
 router.get("/serial/:serial_no", assetController.getAssetDetailsBySerialNo);
-router.post("/allocate-asset", assetController.allocateAsset);
+// router.post("/allocate-asset", assetController.allocateAsset);
 router.get("/getAllAllocations", assetController.getAllAllocations);
 
 router.post("/createRequest", assetController.createRequest);

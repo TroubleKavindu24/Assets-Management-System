@@ -99,46 +99,95 @@ exports.getAllAssets = async (req, res) => {
   }
 };
 
-exports.asset_allocation = async (req, res) => {
+exports.getAvailableAssetsByType = async (req, res) => {
   try {
+    const { type } = req.params;
+
+    if (!type) {
+      return res.status(400).json({ message: "Asset type is required" });
+    }
+
+    const assets = await Asset.findAll({
+      where: {
+        asset_type: type,
+        status: "AVAILABLE"
+      },
+      attributes: ["asset_id", "serial_no", "brand", "os"]
+    });
+
+    return res.status(200).json({
+      count: assets.length,
+      data: assets
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+exports.allocateAsset = async (req, res) => {
+  try {
+    console.log("BODY:", req.body);
+
     const {
-      asset_id,
+      serial_no,
+      ip_address,
       department_id,
       allocated_by,
       allocated_date,
       return_date
     } = req.body;
 
-    // Check asset
-    const asset = await Asset.findByPk(asset_id);
+    // ✅ Validation
+    if (!serial_no || !ip_address || !department_id || !allocated_by) {
+      return res.status(400).json({
+        message: "Missing required fields"
+      });
+    }
+
+    // ✅ Find asset using serial_no
+    const asset = await Asset.findOne({
+      where: { serial_no }
+    });
+
     if (!asset) {
       return res.status(404).json({ message: "Asset not found" });
     }
 
+    // ✅ Check availability
     if (asset.status !== "AVAILABLE") {
-      return res.status(400).json({ message: "Asset not available" });
+      return res.status(400).json({
+        message: "Asset is not AVAILABLE"
+      });
     }
 
-    // Create allocation
+    // ✅ Create allocation
     const allocation = await AssetAllocation.create({
-      asset_id,
+      asset_id: asset.asset_id, // still store internally
+      serial_no: asset.serial_no,
+      ip_address,
       department_id,
       allocated_by,
-      allocated_date,
-      return_date
+      allocated_date: allocated_date || new Date(),
+      return_date: return_date || null
     });
 
-    // Update asset status
+    // ✅ Update asset status
     asset.status = "ALLOCATED";
     await asset.save();
 
-    return res.status(200).json({
+    return res.status(201).json({
       message: "Asset allocated successfully",
       data: allocation
     });
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message
+    });
   }
 };
 
@@ -255,64 +304,64 @@ exports.getAssetDetailsBySerialNo = async (req, res) => {
   }
 };
 
-exports.allocateAsset = async (req, res) => {
-  try {
-    const {
-      asset_id,
-      req_id,
-      ip_address,
-      department_id,
-      allocated_by,
-      allocated_date,
-      return_date
-    } = req.body;
+// exports.allocateAsset = async (req, res) => {
+//   try {
+//     const {
+//       asset_id,
+//       req_id,
+//       ip_address,
+//       department_id,
+//       allocated_by,
+//       allocated_date,
+//       return_date
+//     } = req.body;
 
-    // Validate required fields
-    if (!asset_id || !req_id || !department_id || !allocated_by || !ip_address) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
+//     // Validate required fields
+//     if (!asset_id || !req_id || !department_id || !allocated_by || !ip_address) {
+//       return res.status(400).json({ message: "Missing required fields" });
+//     }
 
-    // Check department is valid
-    if (!DEPARTMENTS.includes(department_id)) {
-      return res.status(400).json({ message: `Invalid department. Choose one of: ${DEPARTMENTS.join(", ")}` });
-    }
+//     // Check department is valid
+//     if (!DEPARTMENTS.includes(department_id)) {
+//       return res.status(400).json({ message: `Invalid department. Choose one of: ${DEPARTMENTS.join(", ")}` });
+//     }
 
-    // Check asset exists
-    const asset = await Asset.findByPk(asset_id);
-    if (!asset) {
-      return res.status(404).json({ message: "Asset not found" });
-    }
+//     // Check asset exists
+//     const asset = await Asset.findByPk(asset_id);
+//     if (!asset) {
+//       return res.status(404).json({ message: "Asset not found" });
+//     }
 
-    // Check asset availability
-    if (asset.status !== "AVAILABLE") {
-      return res.status(400).json({ message: `Asset is not available. Current status: ${asset.status}` });
-    }
+//     // Check asset availability
+//     if (asset.status !== "AVAILABLE") {
+//       return res.status(400).json({ message: `Asset is not available. Current status: ${asset.status}` });
+//     }
 
-    // Create allocation record
-    const allocation = await AssetAllocation.create({
-      asset_id,
-      req_id,
-      ip_address,
-      department_id,
-      allocated_by,
-      allocated_date: allocated_date || new Date(),
-      return_date
-    });
+//     // Create allocation record
+//     const allocation = await AssetAllocation.create({
+//       asset_id,
+//       req_id,
+//       ip_address,
+//       department_id,
+//       allocated_by,
+//       allocated_date: allocated_date || new Date(),
+//       return_date
+//     });
 
-    // Update asset status to ALLOCATED
-    asset.status = "ALLOCATED";
-    await asset.save();
+//     // Update asset status to ALLOCATED
+//     asset.status = "ALLOCATED";
+//     await asset.save();
 
-    return res.status(200).json({
-      message: "Asset allocated successfully",
-      allocation
-    });
+//     return res.status(200).json({
+//       message: "Asset allocated successfully",
+//       allocation
+//     });
 
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: error.message });
-  }
-};
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({ error: error.message });
+//   }
+// };
 
 /**
  CREATE ASSET REQUEST (User submits request form)
