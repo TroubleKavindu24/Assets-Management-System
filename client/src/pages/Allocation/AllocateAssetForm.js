@@ -1,21 +1,23 @@
 // src/components/AllocateAssetForm.jsx
-import React, { useState } from 'react';
-import './AllocateAssetForm.css'; // optional
+import React, { useState } from "react";
+import "./AllocateAssetForm.css";
 
 const AllocateAssetForm = () => {
   const [formData, setFormData] = useState({
-    asset_id: '',
-    department_id: '',
-    allocated_by: '',
-    allocated_date: new Date().toISOString().split('T')[0], // today by default
-    return_date: '',
+    asset_id: "",
+    req_id: "",
+    ip_address: "",
+    department_id: "",
+    allocated_by: "",
+    allocated_date: new Date().toISOString().split("T")[0],
+    return_date: "",
   });
 
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const departments = ['IT', 'HR', 'FINANCE', 'OPERATIONS', 'ADMIN'];
+  const departments = ["IT", "HR", "FINANCE", "OPERATIONS", "ADMIN"];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -27,42 +29,55 @@ const AllocateAssetForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage('');
-    setError('');
+    setMessage("");
+    setError("");
     setLoading(true);
 
-    // Basic client-side check
-    if (!formData.asset_id || !formData.department_id || !formData.allocated_by) {
-      setError('Please fill all required fields');
+    // Validation
+    if (
+      !formData.asset_id ||
+      !formData.req_id ||
+      !formData.ip_address ||
+      !formData.department_id ||
+      !formData.allocated_by
+    ) {
+      setError("Please fill all required fields");
       setLoading(false);
       return;
     }
 
     try {
-      const response = await fetch('http://localhost:5005/api/assets/allocate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+      const response = await fetch(
+        "http://localhost:5005/api/assets/asset-allocation",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        }
+      );
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || 'Allocation failed');
+        throw new Error(result.message || "Allocation failed");
       }
 
-      setMessage('Asset allocated successfully!');
+      setMessage("Asset allocated successfully!");
+
+      // Reset form
       setFormData({
-        asset_id: '',
-        department_id: '',
-        allocated_by: '',
-        allocated_date: new Date().toISOString().split('T')[0],
-        return_date: '',
+        asset_id: "",
+        req_id: "",
+        ip_address: "",
+        department_id: "",
+        allocated_by: "",
+        allocated_date: new Date().toISOString().split("T")[0],
+        return_date: "",
       });
     } catch (err) {
-      setError(err.message || 'Something went wrong');
+      setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -76,6 +91,7 @@ const AllocateAssetForm = () => {
       {error && <div className="error-message">{error}</div>}
 
       <form onSubmit={handleSubmit} className="allocate-form">
+        {/* Asset ID */}
         <div className="form-group">
           <label>Asset ID *</label>
           <input
@@ -83,12 +99,38 @@ const AllocateAssetForm = () => {
             name="asset_id"
             value={formData.asset_id}
             onChange={handleChange}
-            placeholder="e.g. 5, 42, 1001"
+            placeholder="e.g. 1, 25"
             required
           />
-          <small>Enter the numeric ID of the asset</small>
         </div>
 
+        {/* Request ID */}
+        <div className="form-group">
+          <label>Request ID *</label>
+          <input
+            type="text"
+            name="req_id"
+            value={formData.req_id}
+            onChange={handleChange}
+            placeholder="e.g. REQ-001"
+            required
+          />
+        </div>
+
+        {/* IP Address */}
+        <div className="form-group">
+          <label>IP Address *</label>
+          <input
+            type="text"
+            name="ip_address"
+            value={formData.ip_address}
+            onChange={handleChange}
+            placeholder="e.g. 192.168.1.10"
+            required
+          />
+        </div>
+
+        {/* Department */}
         <div className="form-group">
           <label>Department *</label>
           <select
@@ -106,18 +148,20 @@ const AllocateAssetForm = () => {
           </select>
         </div>
 
+        {/* Allocated By */}
         <div className="form-group">
-          <label>Allocated By (Name / ID) *</label>
+          <label>Allocated By *</label>
           <input
             type="text"
             name="allocated_by"
             value={formData.allocated_by}
             onChange={handleChange}
-            placeholder="e.g. Kavindu, ADMIN-001, John Doe"
+            placeholder="e.g. Admin / Kavindu"
             required
           />
         </div>
 
+        {/* Allocation Date */}
         <div className="form-group">
           <label>Allocation Date</label>
           <input
@@ -128,6 +172,7 @@ const AllocateAssetForm = () => {
           />
         </div>
 
+        {/* Return Date */}
         <div className="form-group">
           <label>Expected Return Date</label>
           <input
@@ -140,7 +185,7 @@ const AllocateAssetForm = () => {
         </div>
 
         <button type="submit" disabled={loading} className="submit-btn">
-          {loading ? 'Allocating...' : 'Allocate Asset'}
+          {loading ? "Allocating..." : "Allocate Asset"}
         </button>
       </form>
     </div>

@@ -13,10 +13,10 @@ const AssetAllocation = sequelize.define(
     type: DataTypes.STRING,
     allowNull: false,
   },
-  req_id: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
+  // req_id: {
+  //   type: DataTypes.STRING,
+  //   allowNull: false,
+  // },
   ip_address: {
     type: DataTypes.STRING,
     allowNull: false,
