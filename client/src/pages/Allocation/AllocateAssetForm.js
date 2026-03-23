@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import axios from "axios";
+import { AuthContext } from "../../context/AuthContext";
 import "./AllocateAssetForm.css";
 
 const AllocateAssetForm = () => {
+  const { user } = useContext(AuthContext);
   const [formData, setFormData] = useState({
     asset_type: "",
     serial_no: "",
@@ -22,6 +24,16 @@ const AllocateAssetForm = () => {
   const assetTypes = ["Laptop", "Machine", "Printer", "Other"];
   const departments = ["IT", "HR", "FINANCE", "OPERATIONS", "ADMIN"];
 
+  // Set allocated_by from logged-in user
+  useEffect(() => {
+    if (user && user.user_name) {
+      setFormData((prev) => ({
+        ...prev,
+        allocated_by: user.user_name,
+      }));
+    }
+  }, [user]);
+
   // Handle input change
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -31,7 +43,7 @@ const AllocateAssetForm = () => {
       [name]: value,
     }));
 
-    // 🔥 When asset_type changes → fetch available assets
+    // When asset_type changes → fetch available assets
     if (name === "asset_type") {
       fetchAvailableAssets(value);
       setFormData((prev) => ({
@@ -92,7 +104,7 @@ const AllocateAssetForm = () => {
         serial_no: "",
         ip_address: "",
         department_id: "",
-        allocated_by: "",
+        allocated_by: user?.user_name || "",
         allocated_date: new Date().toISOString().split("T")[0],
         return_date: "",
       });
@@ -110,9 +122,6 @@ const AllocateAssetForm = () => {
   return (
     <div className="allocate-asset-container">
       <h2>Allocate Asset</h2>
-
-      {message && <div className="success-message">{message}</div>}
-      {error && <div className="error-message">{error}</div>}
 
       <form onSubmit={handleSubmit} className="allocate-form">
 
@@ -194,17 +203,25 @@ const AllocateAssetForm = () => {
           </select>
         </div>
 
-        {/* Allocated By */}
+        {/* Allocated By - Read Only from Logged-in User */}
         <div className="form-group">
           <label>Allocated By *</label>
           <input
             type="text"
             name="allocated_by"
             value={formData.allocated_by}
-            onChange={handleChange}
-            required
-            placeholder="Admin / Kavindu"
+            readOnly
+            disabled
+            className="readonly-field"
+            style={{
+              backgroundColor: "#f3f4f6",
+              cursor: "not-allowed",
+              border: "1px solid #d1d5db"
+            }}
           />
+          <small style={{ color: "#6b7280", fontSize: "12px" }}>
+            Automatically set from logged-in user
+          </small>
         </div>
 
         {/* Allocation Date */}

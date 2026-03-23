@@ -1,7 +1,11 @@
-import React from "react";
+import React, { useContext } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { AuthContext } from "./context/AuthContext";
+import { AuthProvider } from "./context/AuthContext";
 
-import Navbar from "./components/NavBar";
+import NavBar from "./components/NavBar";
+import ProtectedRoute from "./components/ProtectedRoute";
+
 import Dashboard from "./pages/Dashboard/Dashboard";
 import AddAssetForm from "./pages/AddAssets/AddAssetForm";
 import AllocateAssetForm from "./pages/Allocation/AllocateAssetForm";
@@ -9,25 +13,118 @@ import AllocateList from "./pages/Allocation/AllocationList";
 import AssetRequest from "./pages/AssetsList/AssetRequestForm";
 import AssetsList from "./pages/AssetsList/AssetsList";
 
+import LoginPage from "./pages/Auth/LoginPage";
+import RegisterPage from "./pages/Auth/RegisterPage";
 
-const App = () => {
+const AppContent = () => {
+  const { loading } = useContext(AuthContext);
+
+  if (loading) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.loader}></div>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
   return (
     <Router>
-      <Navbar />
-      <div style={{ padding: "20px" }}>
+      <NavBar />
+      <div style={styles.content}>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/assetForm" element={<AddAssetForm />} />
-          <Route path="/allocate-form" element={<AllocateAssetForm />} />
-          <Route path="/allocate-list" element={<AllocateList />} />
+          <Route path="/login" element={<LoginPage />} />
 
-
-          <Route path="/req-asset" element={<AssetRequest />} />
-          <Route path="/assets-list" element={<AssetsList />} />
+          {/* Protected Routes */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/assetForm"
+            element={
+              <ProtectedRoute>
+                <AddAssetForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/allocate-form"
+            element={
+              <ProtectedRoute>
+                <AllocateAssetForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/allocate-list"
+            element={
+              <ProtectedRoute>
+                <AllocateList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/req-asset"
+            element={
+              <ProtectedRoute>
+                <AssetRequest />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/assets-list"
+            element={
+              <ProtectedRoute>
+                <AssetsList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <ProtectedRoute>
+                <RegisterPage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </div>
     </Router>
-   );
+  );
+};
+
+const App = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+};
+
+const styles = {
+  loadingContainer: {
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: "100vh",
+  },
+  loader: {
+    border: "4px solid #f3f3f3",
+    borderTop: "4px solid #3498db",
+    borderRadius: "50%",
+    width: "40px",
+    height: "40px",
+    animation: "spin 1s linear infinite",
+  },
+  content: {
+    padding: "20px",
+  },
 };
 
 export default App;
