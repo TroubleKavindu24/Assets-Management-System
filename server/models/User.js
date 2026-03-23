@@ -10,36 +10,28 @@ const User = sequelize.define(
       primaryKey: true,
     },
 
-    full_name: {
+    user_name: {
       type: DataTypes.STRING(100),
       allowNull: false,
     },
 
-    email: {
-      type: DataTypes.STRING(100),
-      allowNull: false,
-      unique: true,
-    },
-
-    password_hash: {
+    password: {
       type: DataTypes.STRING(255),
       allowNull: false,
     },
 
     role: {
       type: DataTypes.ENUM(
-        "DEPARTMENT_USER",
-        "DEPARTMENT_HOD",
-        "IT_OFFICER",
-        "IT_HOD",
-        "ADMIN"
+        "SUPER_ADMIN",
+        "ADMIN",
+        "STAFF"
       ),
       allowNull: false,
     },
 
-    department_id: {
-      type: DataTypes.INTEGER,
-      allowNull: true, // ❗ FIXED (was allow_after)
+    department_name: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
     },
 
     is_active: {

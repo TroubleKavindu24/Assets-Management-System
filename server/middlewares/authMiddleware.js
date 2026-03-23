@@ -1,30 +1,26 @@
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
-const protect = (req, res, next) => {
-    let token;
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-        token = req.headers.authorization.split(' ')[1];
-    }
+// Verify JWT Token
+exports.verifyToken = async (req, res, next) => {
+  const token = req.headers["authorization"]?.split(" ")[1]; // Bearer TOKEN
+  if (!token) return res.status(401).json({ message: "No token provided" });
 
-    if (!token) {
-        return res.status(401).send({ message: 'Not authorized now' });
-    }
-
-    try {
-        const decoded = jwt.verify(token, 'secretKey');
-        req.user = decoded;
-        next();
-    } catch (error) {
-        res.status(401).send({ message: 'Not authorized' });
-    }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded; // contains user_id, role, department_id
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
 };
 
-const admin = (req, res, next) => {
-    if (req.user && req.user.role === 'admin') {
-        next();
-    } else {
-        res.status(403).send({ message: 'Not authorized as admin' });
+// Check for roles
+exports.allowRoles = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: "Access denied" });
     }
+    next();
+  };
 };
-
-module.exports = { protect, admin };

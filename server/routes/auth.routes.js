@@ -1,8 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const authController = require("../controllers/auth.controller");
+const userController = require("../controllers/auth.controller");
+const { verifyToken, allowRoles } = require("../middlewares/authMiddleware");
 
-router.post("/register", authController.register);
-router.post("/login", authController.login);
+// Public
+router.post("/login", userController.login);
+
+// Protected (ONLY SUPER_ADMIN)
+router.post("/register", verifyToken, allowRoles("SUPER_ADMIN"), userController.register);
 
 module.exports = router;

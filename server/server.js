@@ -12,6 +12,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+require('dotenv').config();
+
 // Connect DB FIRST
 connectDB();
 

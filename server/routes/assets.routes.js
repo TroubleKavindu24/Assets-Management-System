@@ -13,8 +13,8 @@ router.get("/serial/:serial_no", assetController.getAssetDetailsBySerialNo);
 // router.post("/allocate-asset", assetController.allocateAsset);
 router.get("/getAllAllocations", assetController.getAllAllocations);
 
-router.post("/createRequest", assetController.createRequest);
-router.get("/getAllRequests", assetController.getAllRequests);
-router.put("/:req_id/status", assetController.updateRequestStatus);
+// router.post("/createRequest", assetController.createRequest);
+// router.get("/getAllRequests", assetController.getAllRequests);
+// router.put("/:req_id/status", assetController.updateRequestStatus);
 
 module.exports = router;

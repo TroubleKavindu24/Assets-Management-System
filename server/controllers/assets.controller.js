@@ -366,137 +366,137 @@ exports.getAssetDetailsBySerialNo = async (req, res) => {
 /**
  CREATE ASSET REQUEST (User submits request form)
 */
-exports.createRequest = async (req, res) => {
-  try {
-    const {
-      department_id,
-      requested_by,
-      asset_type,
-      quantity,
-      request_type,
-      budget_type
-    } = req.body;
+// exports.createRequest = async (req, res) => {
+//   try {
+//     const {
+//       department_id,
+//       requested_by,
+//       asset_type,
+//       quantity,
+//       request_type,
+//       budget_type
+//     } = req.body;
 
-    // 🔹 Validation
-    if (
-      !department_id ||
-      !requested_by ||
-      !asset_type ||
-      !quantity
-    ) {
-      return res.status(400).json({
-        message: "Required fields are missing"
-      });
-    }
+//     // 🔹 Validation
+//     if (
+//       !department_id ||
+//       !requested_by ||
+//       !asset_type ||
+//       !quantity
+//     ) {
+//       return res.status(400).json({
+//         message: "Required fields are missing"
+//       });
+//     }
 
-    // 🔹 Validate department
-    if (!DEPARTMENTS.includes(department_id)) {
-      return res.status(400).json({
-        message: "Invalid department"
-      });
-    }
+//     // 🔹 Validate department
+//     if (!DEPARTMENTS.includes(department_id)) {
+//       return res.status(400).json({
+//         message: "Invalid department"
+//       });
+//     }
 
-    // 🔹 Validate asset type
-    if (!ASSET_TYPES.includes(asset_type)) {
-      return res.status(400).json({
-        message: "Invalid asset type"
-      });
-    }
+//     // 🔹 Validate asset type
+//     if (!ASSET_TYPES.includes(asset_type)) {
+//       return res.status(400).json({
+//         message: "Invalid asset type"
+//       });
+//     }
 
-    // 🔹 Quantity check
-    if (quantity <= 0) {
-      return res.status(400).json({
-        message: "Quantity must be greater than 0"
-      });
-    }
+//     // 🔹 Quantity check
+//     if (quantity <= 0) {
+//       return res.status(400).json({
+//         message: "Quantity must be greater than 0"
+//       });
+//     }
 
-    const request = await AssetRequest.create({
-      department_id,
-      requested_by,
-      asset_type,
-      quantity,
-      request_type,
-      budget_type,
-      status: "PENDING"
-    });
+//     const request = await AssetRequest.create({
+//       department_id,
+//       requested_by,
+//       asset_type,
+//       quantity,
+//       request_type,
+//       budget_type,
+//       status: "PENDING"
+//     });
 
-    return res.status(201).json({
-      message: "Asset request submitted successfully",
-      data: request
-    });
+//     return res.status(201).json({
+//       message: "Asset request submitted successfully",
+//       data: request
+//     });
 
-  } catch (error) {
-    res.status(500).json({
-      error: error.message
-    });
-  }
-};
+//   } catch (error) {
+//     res.status(500).json({
+//       error: error.message
+//     });
+//   }
+// };
 
-/**
- * 2️⃣ GET ALL REQUESTS (Admin / IT)
- */
-exports.getAllRequests = async (req, res) => {
-  try {
-    const requests = await AssetRequest.findAll({
-      order: [["request_date", "DESC"]]
-    });
+// /**
+//  * 2️⃣ GET ALL REQUESTS (Admin / IT)
+//  */
+// exports.getAllRequests = async (req, res) => {
+//   try {
+//     const requests = await AssetRequest.findAll({
+//       order: [["request_date", "DESC"]]
+//     });
 
-    res.status(200).json(requests);
+//     res.status(200).json(requests);
 
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
 
-/**
- * 3️⃣ UPDATE REQUEST STATUS (Approve / Reject)
- */
-exports.updateRequestStatus = async (req, res) => {
-  try {
-    const { req_id } = req.params;
-    const { status } = req.body;
+// /**
+//  * 3️⃣ UPDATE REQUEST STATUS (Approve / Reject)
+//  */
+// exports.updateRequestStatus = async (req, res) => {
+//   try {
+//     const { req_id } = req.params;
+//     const { status } = req.body;
 
-    // ✅ Allow ONLY these two statuses
-    const ALLOWED_STATUS = ["APPROVED", "REJECTED"];
+//     // ✅ Allow ONLY these two statuses
+//     const ALLOWED_STATUS = ["APPROVED", "REJECTED"];
 
-    if (!ALLOWED_STATUS.includes(status)) {
-      return res.status(400).json({
-        message: "Status must be APPROVED or REJECTED"
-      });
-    }
+//     if (!ALLOWED_STATUS.includes(status)) {
+//       return res.status(400).json({
+//         message: "Status must be APPROVED or REJECTED"
+//       });
+//     }
 
-    // 🔍 Find request by ID
-    const request = await AssetRequest.findOne({
-      where: { req_id }
-    });
+//     // 🔍 Find request by ID
+//     const request = await AssetRequest.findOne({
+//       where: { req_id }
+//     });
 
-    if (!request) {
-      return res.status(404).json({
-        message: "Asset request not found"
-      });
-    }
+//     if (!request) {
+//       return res.status(404).json({
+//         message: "Asset request not found"
+//       });
+//     }
 
-    // ❌ Prevent double approval/rejection
-    if (request.status !== "PENDING") {
-      return res.status(400).json({
-        message: `Request already ${request.status}`
-      });
-    }
+//     // ❌ Prevent double approval/rejection
+//     if (request.status !== "PENDING") {
+//       return res.status(400).json({
+//         message: `Request already ${request.status}`
+//       });
+//     }
 
-    // ✅ Update ONLY status
-    await request.update({ status });
+//     // ✅ Update ONLY status
+//     await request.update({ status });
 
-    return res.status(200).json({
-      message: `Request ${status.toLowerCase()} successfully`,
-      data: {
-        req_id: request.req_id,
-        status: request.status
-      }
-    });
+//     return res.status(200).json({
+//       message: `Request ${status.toLowerCase()} successfully`,
+//       data: {
+//         req_id: request.req_id,
+//         status: request.status
+//       }
+//     });
 
-  } catch (error) {
-    res.status(500).json({
-      error: error.message
-    });
-  }
-};
+//   } catch (error) {
+//     res.status(500).json({
+//       error: error.message
+//     });
+//   }
+// };
