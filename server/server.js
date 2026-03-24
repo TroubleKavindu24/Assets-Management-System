@@ -3,7 +3,7 @@ const cors = require("cors");
 const { sequelize, connectDB } = require("./config/db");
 const authRoutes = require("./routes/auth.routes");
 const assetRoutes = require("./routes/assets.routes");
-
+const roleManageRoutes = require("./routes/roleManagement.routes");
 const errorHandler = require("./middlewares/errorMiddleware");
 
 const app = express();
@@ -26,6 +26,7 @@ sequelize
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/assets", assetRoutes);
+app.use("/api/rolemanagement", roleManageRoutes);
 
 // Error handler (LAST)
 app.use(errorHandler);

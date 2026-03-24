@@ -1,7 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
-// 🔐 LOGIN
 exports.login = async (req, res) => {
   try {
     const { user_name, password } = req.body;
@@ -15,17 +14,24 @@ exports.login = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+    
+    // Check if user is active
+    if (user.is_active === false) {
+      return res.status(401).json({ message: "Account is deactivated. Please contact SUPER_ADMIN." });
+    }
 
     // Plain password check (as per your requirement)
     if (user.password !== password) {
       return res.status(401).json({ message: "Invalid password" });
     }
 
-    // Generate JWT
+    // Generate JWT with more user information
     const token = jwt.sign(
       {
         user_id: user.user_id,
+        user_name: user.user_name,
         role: user.role,
+        department_name: user.department_name
       },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
@@ -38,15 +44,17 @@ exports.login = async (req, res) => {
         user_id: user.user_id,
         user_name: user.user_name,
         role: user.role,
+        department_name: user.department_name,
+        is_active: user.is_active
       },
     });
   } catch (error) {
-      console.error("ERROR:", error); // 👈 THIS LINE
-      res.status(500).json({
+    console.error("ERROR:", error);
+    res.status(500).json({
       message: "Server error",
-      error: error.message, // 👈 show actual error
-  });
-}
+      error: error.message,
+    });
+  }
 };
 
 // 📝 REGISTER (ONLY SUPER_ADMIN)
@@ -90,3 +98,4 @@ exports.register = async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
+
