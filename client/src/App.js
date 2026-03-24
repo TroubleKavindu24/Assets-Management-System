@@ -13,6 +13,8 @@ import AllocateList from "./pages/Allocation/AllocationList";
 import AssetRequest from "./pages/AssetsList/AssetRequestForm";
 import AssetsList from "./pages/AssetsList/AssetsList";
 
+import RoleManagement from "./pages/Role_management/roleManagement";
+
 import LoginPage from "./pages/Auth/LoginPage";
 import RegisterPage from "./pages/Auth/RegisterPage";
 
@@ -89,6 +91,14 @@ const AppContent = () => {
             element={
               <ProtectedRoute>
                 <RegisterPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rolemanagement"
+            element={
+              <ProtectedRoute>
+                <RoleManagement />
               </ProtectedRoute>
             }
           />

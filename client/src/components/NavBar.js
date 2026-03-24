@@ -106,7 +106,7 @@ const NavBar = () => {
                 
                 {isManageOpen && (
                   <div style={styles.dropdownContent}>
-                    <Link to="/role-management" style={styles.dropdownLink}>
+                    <Link to="/rolemanagement" style={styles.dropdownLink}>
                       Role Management
                     </Link>
                     <Link to="/register" style={styles.dropdownLink}>
