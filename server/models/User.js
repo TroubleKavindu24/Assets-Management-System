@@ -1,5 +1,3 @@
-// models/User.js (updated with has_permissions flag)
-
 const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/db");
 

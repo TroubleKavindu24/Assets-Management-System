@@ -4,6 +4,8 @@ const { sequelize, connectDB } = require("./config/db");
 const authRoutes = require("./routes/auth.routes");
 const assetRoutes = require("./routes/assets.routes");
 const roleManageRoutes = require("./routes/roleManagement.routes");
+const permissionRoutes = require("./routes/permission.routes");
+
 const errorHandler = require("./middlewares/errorMiddleware");
 
 const app = express();
@@ -27,6 +29,7 @@ sequelize
 app.use("/api/auth", authRoutes);
 app.use("/api/assets", assetRoutes);
 app.use("/api/rolemanagement", roleManageRoutes);
+app.use("/api/permissions", permissionRoutes);
 
 // Error handler (LAST)
 app.use(errorHandler);

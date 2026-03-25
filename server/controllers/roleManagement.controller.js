@@ -4,6 +4,26 @@ const User = require("../models/User");
 const { sequelize } = require("../config/db");
 const { Op } = require("sequelize");
 
+// Helper function to verify SUPER_ADMIN password
+const verifySuperAdminPassword = async (superAdminId, password) => {
+  const superAdmin = await User.findByPk(superAdminId);
+  
+  if (!superAdmin) {
+    throw new Error("Super Admin not found");
+  }
+  
+  if (superAdmin.role !== "SUPER_ADMIN") {
+    throw new Error("User is not SUPER_ADMIN");
+  }
+  
+  // Plain password check (as per your requirement)
+  if (superAdmin.password !== password) {
+    throw new Error("Invalid password");
+  }
+  
+  return true;
+};
+
 // Helper function to check if user exists and is manageable
 const findAndValidateUser = async (userId, action) => {
   const user = await User.findByPk(userId);
