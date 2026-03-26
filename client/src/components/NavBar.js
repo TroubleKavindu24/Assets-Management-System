@@ -109,6 +109,9 @@ const NavBar = () => {
                     <Link to="/rolemanagement" style={styles.dropdownLink}>
                       Role Management
                     </Link>
+                    <Link to="/permissions" style={styles.dropdownLink}>
+                      Permissions Management
+                    </Link>
                     <Link to="/register" style={styles.dropdownLink}>
                       User Register
                     </Link>

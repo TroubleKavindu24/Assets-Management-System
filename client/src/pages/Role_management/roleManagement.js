@@ -1,3 +1,5 @@
+// src/components/RoleManagement.js
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './roleManagement.css';
@@ -19,6 +21,13 @@ const RoleManagement = () => {
   const [bulkAction, setBulkAction] = useState('promote');
   const [editingUser, setEditingUser] = useState(null);
   const [departmentOptions] = useState(['IT', 'HR', 'FINANCE', 'OPERATIONS', 'ADMIN']);
+  
+  // Password modal states
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
+  const [pendingData, setPendingData] = useState(null);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   const token = localStorage.getItem('token');
 
@@ -68,108 +77,105 @@ const RoleManagement = () => {
     fetchStats();
   }, [currentPage, searchTerm, roleFilter]);
 
-  // Promote user
-  const handlePromote = async (userId) => {
-    if (!window.confirm('Are you sure you want to promote this user to ADMIN?')) return;
-    
+  // Show password modal for action
+  const requirePassword = (action, data) => {
+    setPendingAction(() => action);
+    setPendingData(data);
+    setShowPasswordModal(true);
+    setPassword('');
+    setPasswordError('');
+  };
+
+  // Execute action after password verification
+  const executeAction = async () => {
+    if (!password) {
+      setPasswordError('Password is required');
+      return;
+    }
+
     setLoading(true);
     setError('');
+    
     try {
-      const response = await authAxios.put(`http://localhost:5005/api/rolemanagement/users/${userId}/promote`);
-      setSuccess(response.data.message);
-      fetchUsers();
-      fetchStats();
-      setTimeout(() => setSuccess(''), 3000);
+      let response;
+      const actionData = { ...pendingData, password };
+      
+      switch (pendingAction) {
+        case 'promote':
+          response = await authAxios.put(`http://localhost:5005/api/rolemanagement/users/${pendingData.userId}/promote`, actionData);
+          break;
+        case 'demote':
+          response = await authAxios.put(`http://localhost:5005/api/rolemanagement/users/${pendingData.userId}/demote`, actionData);
+          break;
+        case 'deactivate':
+          response = await authAxios.post(`http://localhost:5005/api/rolemanagement/users/${pendingData.userId}/deactivate`, actionData);
+          break;
+        case 'reactivate':
+          response = await authAxios.post(`http://localhost:5005/api/rolemanagement/users/${pendingData.userId}/reactivate`, actionData);
+          break;
+        case 'updateDepartment':
+          response = await authAxios.put(`http://localhost:5005/api/rolemanagement/users/${pendingData.userId}/department`, actionData);
+          break;
+        case 'bulkUpdate':
+          response = await authAxios.post('http://localhost:5005/api/rolemanagement/users/bulk-update', actionData);
+          break;
+        default:
+          break;
+      }
+      
+      if (response) {
+        setSuccess(response.data.message);
+        fetchUsers();
+        fetchStats();
+        if (pendingAction === 'bulkUpdate') {
+          setSelectedUsers([]);
+          setShowBulkModal(false);
+        }
+        if (pendingAction === 'updateDepartment') {
+          setEditingUser(null);
+        }
+        setTimeout(() => setSuccess(''), 3000);
+      }
+      
+      setShowPasswordModal(false);
+      setPendingAction(null);
+      setPendingData(null);
+      setPassword('');
+      
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to promote user');
-      setTimeout(() => setError(''), 3000);
+      setPasswordError(err.response?.data?.message || 'Failed to execute action');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Promote user
+  const handlePromote = (userId) => {
+    requirePassword('promote', { userId });
   };
 
   // Demote user
-  const handleDemote = async (userId) => {
-    if (!window.confirm('Are you sure you want to demote this user to STAFF?')) return;
-    
-    setLoading(true);
-    setError('');
-    try {
-      const response = await authAxios.put(`http://localhost:5005/api/rolemanagement/users/${userId}/demote`);
-      setSuccess(response.data.message);
-      fetchUsers();
-      fetchStats();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to demote user');
-      setTimeout(() => setError(''), 3000);
-    } finally {
-      setLoading(false);
-    }
+  const handleDemote = (userId) => {
+    requirePassword('demote', { userId });
   };
 
   // Deactivate user
-  const handleDeactivate = async (userId) => {
-    if (!window.confirm('Are you sure you want to deactivate this user?')) return;
-    
-    setLoading(true);
-    setError('');
-    try {
-      const response = await authAxios.put(`http://localhost:5005/api/rolemanagement/users/${userId}/deactivateUser`);
-      setSuccess(response.data.message);
-      fetchUsers();
-      fetchStats();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to deactivate user');
-      setTimeout(() => setError(''), 3000);
-    } finally {
-      setLoading(false);
-    }
+  const handleDeactivate = (userId) => {
+    requirePassword('deactivate', { userId });
   };
 
   // Reactivate user
-  const handleReactivate = async (userId) => {
-    if (!window.confirm('Are you sure you want to reactivate this user?')) return;
-    
-    setLoading(true);
-    setError('');
-    try {
-      const response = await authAxios.put(`http://localhost:5005/api/rolemanagement/users/${userId}/reactivate`);
-      setSuccess(response.data.message);
-      fetchUsers();
-      fetchStats();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to reactivate user');
-      setTimeout(() => setError(''), 3000);
-    } finally {
-      setLoading(false);
-    }
+  const handleReactivate = (userId) => {
+    requirePassword('reactivate', { userId });
   };
 
   // Update department
-  const handleUpdateDepartment = async (userId, department) => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await authAxios.put(`/role-management/users/${userId}/department`, {
-        department_name: department
-      });
-      setSuccess(response.data.message);
-      fetchUsers();
-      setTimeout(() => setSuccess(''), 3000);
-      setEditingUser(null);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update department');
-      setTimeout(() => setError(''), 3000);
-    } finally {
-      setLoading(false);
-    }
+  const handleUpdateDepartment = (userId, department) => {
+    requirePassword('updateDepartment', { userId, department_name: department });
   };
 
   // Bulk role update
-  const handleBulkUpdate = async () => {
+  const handleBulkUpdate = () => {
     if (selectedUsers.length === 0) {
       setError('Please select at least one user');
       setTimeout(() => setError(''), 3000);
@@ -181,23 +187,7 @@ const RoleManagement = () => {
       action: bulkAction
     }));
 
-    setLoading(true);
-    setError('');
-    try {
-      const response = await authAxios.post('http://localhost:5005/api/rolemanagement/users/bulk-update', { updates });
-      const { successful, failed } = response.data.data;
-      setSuccess(`Updated ${successful.length} users. Failed: ${failed.length}`);
-      fetchUsers();
-      fetchStats();
-      setSelectedUsers([]);
-      setShowBulkModal(false);
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to perform bulk update');
-      setTimeout(() => setError(''), 3000);
-    } finally {
-      setLoading(false);
-    }
+    requirePassword('bulkUpdate', { updates });
   };
 
   // Toggle user selection for bulk operations
@@ -506,6 +496,56 @@ const RoleManagement = () => {
                 Confirm Bulk Update
               </button>
               <button onClick={() => setShowBulkModal(false)} className="btn-cancel">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Confirmation Modal */}
+      {showPasswordModal && (
+        <div className="modal-overlay" onClick={() => {
+          setShowPasswordModal(false);
+          setPendingAction(null);
+          setPendingData(null);
+          setPassword('');
+          setPasswordError('');
+        }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Confirm Action</h3>
+            <p>Please enter your SUPER_ADMIN password to confirm this action.</p>
+            
+            <div className="modal-form">
+              <label>Password:</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && executeAction()}
+                placeholder="Enter your password"
+                className="password-input"
+                autoFocus
+              />
+              {passwordError && (
+                <div className="password-error">{passwordError}</div>
+              )}
+            </div>
+            
+            <div className="modal-actions">
+              <button onClick={executeAction} className="btn-confirm" disabled={loading}>
+                Confirm
+              </button>
+              <button 
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setPendingAction(null);
+                  setPendingData(null);
+                  setPassword('');
+                  setPasswordError('');
+                }} 
+                className="btn-cancel"
+              >
                 Cancel
               </button>
             </div>

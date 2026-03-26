@@ -17,6 +17,7 @@ import RoleManagement from "./pages/Role_management/roleManagement";
 
 import LoginPage from "./pages/Auth/LoginPage";
 import RegisterPage from "./pages/Auth/RegisterPage";
+import PermissionManagement from "./pages/PermissionManagement/PermissionManagement";
 
 const AppContent = () => {
   const { loading } = useContext(AuthContext);
@@ -99,6 +100,14 @@ const AppContent = () => {
             element={
               <ProtectedRoute>
                 <RoleManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/permissions"
+            element={
+              <ProtectedRoute>
+                <PermissionManagement />
               </ProtectedRoute>
             }
           />
