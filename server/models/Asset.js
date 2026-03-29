@@ -16,15 +16,15 @@ const Asset = sequelize.define("Asset", {
     },
   },
   asset_type: {
-    type: DataTypes.ENUM("Laptop", "Machine", "Printer", "Other"),
+    type: DataTypes.ENUM("Laptop", "Machine", "Printer"),
     allowNull: false,
   },
   brand: {
-    type: DataTypes.STRING(50),
+    type: DataTypes.ENUM("HP", "DELL", "TOSHIBA"),
     defaultValue: "N/A",
   },
   os: {
-    type: DataTypes.STRING(50),
+    type: DataTypes.ENUM("Windows 10", "Windows 7", "Windows 11"),
     defaultValue: "N/A",
   },
   purchase_date: {
