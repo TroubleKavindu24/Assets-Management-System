@@ -16,15 +16,15 @@ const Asset = sequelize.define("Asset", {
     },
   },
   asset_type: {
-    type: DataTypes.ENUM("Laptop", "Machine", "Printer"),
+    type: DataTypes.ENUM("Laptop", "Machine", "Printer", "Other"), // Added "Other"
     allowNull: false,
   },
   brand: {
-    type: DataTypes.ENUM("HP", "DELL", "TOSHIBA"),
+    type: DataTypes.ENUM("HP", "DELL", "TOSHIBA", "N/A"), // ✅ Added 'N/A' to ENUM
     defaultValue: "N/A",
   },
   os: {
-    type: DataTypes.ENUM("Windows 10", "Windows 7", "Windows 11"),
+    type: DataTypes.ENUM("Windows 10", "Windows 7", "Windows 11", "N/A"), // ✅ Added 'N/A' to ENUM
     defaultValue: "N/A",
   },
   purchase_date: {
@@ -36,7 +36,7 @@ const Asset = sequelize.define("Asset", {
   },
 }, {
   tableName: "assets",
-  timestamps: true,   // ✅ enable this
+  timestamps: true,
   underscored: true,
 });
 
