@@ -1,5 +1,7 @@
+// models/AssetRequest.js
 const { DataTypes } = require("sequelize");
-const {sequelize} = require("../config/db");
+const { sequelize } = require("../config/db");
+const constants = require("../constants/app.constants");
 
 const AssetRequest = sequelize.define("AssetRequest", {
   req_id: {
@@ -8,7 +10,7 @@ const AssetRequest = sequelize.define("AssetRequest", {
     autoIncrement: true,
   },
   department_id: {
-    type: DataTypes.STRING,
+    type: DataTypes.INTEGER,
     allowNull: false,
   },
   requested_by: {
@@ -16,21 +18,26 @@ const AssetRequest = sequelize.define("AssetRequest", {
     allowNull: false,
   },
   asset_type: {
-    type: DataTypes.STRING(50),
+    type: DataTypes.ENUM(...constants.ASSET_TYPES),
     allowNull: false,
   },
   quantity: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    validate: {
+      min: 1
+    }
   },
   request_type: {
-    type: DataTypes.ENUM("NEW", "REPLACEMENT"),
+    type: DataTypes.ENUM(...constants.REQUEST_TYPES),
+    allowNull: true,
   },
   budget_type: {
-    type: DataTypes.ENUM("BUDGETED", "UNBUDGETED"),
+    type: DataTypes.ENUM(...constants.BUDGET_TYPES),
+    allowNull: true,
   },
   status: {
-    type: DataTypes.STRING(50),
+    type: DataTypes.ENUM(...constants.REQUEST_STATUS),
     defaultValue: "PENDING",
   },
   request_date: {
@@ -39,7 +46,7 @@ const AssetRequest = sequelize.define("AssetRequest", {
   },
 }, {
   tableName: "asset_requests",
-  timestamps: false,
+  timestamps: true,
   underscored: true,
 });
 
