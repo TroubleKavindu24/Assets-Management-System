@@ -1,7 +1,5 @@
-// models/AssetRequest.js
 const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/db");
-const constants = require("../constants/app.constants");
 
 const AssetRequest = sequelize.define("AssetRequest", {
   req_id: {
@@ -18,26 +16,23 @@ const AssetRequest = sequelize.define("AssetRequest", {
     allowNull: false,
   },
   asset_type: {
-    type: DataTypes.ENUM(...constants.ASSET_TYPES),
+    type: DataTypes.STRING(50),
     allowNull: false,
   },
   quantity: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    validate: {
-      min: 1
-    }
   },
   request_type: {
-    type: DataTypes.ENUM(...constants.REQUEST_TYPES),
+    type: DataTypes.STRING(20),
     allowNull: true,
   },
   budget_type: {
-    type: DataTypes.ENUM(...constants.BUDGET_TYPES),
+    type: DataTypes.STRING(20),
     allowNull: true,
   },
   status: {
-    type: DataTypes.ENUM(...constants.REQUEST_STATUS),
+    type: DataTypes.STRING(50),
     defaultValue: "PENDING",
   },
   request_date: {
@@ -46,7 +41,7 @@ const AssetRequest = sequelize.define("AssetRequest", {
   },
 }, {
   tableName: "asset_requests",
-  timestamps: true,
+  timestamps: false,
   underscored: true,
 });
 

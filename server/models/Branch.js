@@ -1,4 +1,3 @@
-// models/Branch.js
 const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/db");
 
@@ -15,7 +14,7 @@ const Branch = sequelize.define("Branch", {
   },
 }, {
   tableName: "branches",
-  timestamps: true, // Add timestamps for better tracking
+  timestamps: true,
   underscored: true,
 });
 

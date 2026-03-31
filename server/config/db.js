@@ -1,7 +1,7 @@
 const { Sequelize } = require("sequelize");
 
 const sequelize = new Sequelize(
-  "assetallocationsystem",
+  "asset_management_system",
   "root",
   "24112000@Kk",
   {

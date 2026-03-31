@@ -1,5 +1,5 @@
 const { DataTypes } = require("sequelize");
-const {sequelize} = require("../config/db");
+const { sequelize } = require("../config/db");
 
 const AssetAllocation = sequelize.define("AssetAllocation", {
   allocation_id: {
@@ -7,47 +7,37 @@ const AssetAllocation = sequelize.define("AssetAllocation", {
     primaryKey: true,
     autoIncrement: true,
   },
-  req_id: {  
-    type: DataTypes.INTEGER,
-    allowNull: true,  
-  },
-  
-  asset_id: {  // ✅ ADD THIS
+  asset_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
-
   serial_no: {
     type: DataTypes.STRING(100),
     allowNull: false,
   },
-
   ip_address: {
     type: DataTypes.STRING,
     allowNull: false,
   },
-
   department_id: {
-    type: DataTypes.STRING,
+    type: DataTypes.INTEGER,
     allowNull: false,
   },
-
   allocated_by: {
     type: DataTypes.STRING,
     allowNull: false,
   },
-
   allocated_date: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
   },
-
   return_date: {
     type: DataTypes.DATE,
+    allowNull: true,
   },
 }, {
   tableName: "asset_allocations",
-  timestamps: true, // ✅ better
+  timestamps: true,
   underscored: true,
 });
 

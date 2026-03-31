@@ -1,4 +1,3 @@
-// models/Department.js
 const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/db");
 
@@ -16,14 +15,10 @@ const Department = sequelize.define("Department", {
   branch_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    references: {
-      model: 'branches',
-      key: 'branch_id'
-    }
   },
 }, {
   tableName: "departments",
-  timestamps: true, // Add timestamps
+  timestamps: true,
   underscored: true,
 });
 

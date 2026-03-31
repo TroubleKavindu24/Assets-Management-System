@@ -1,6 +1,12 @@
 const express = require("express");
 const cors = require("cors");
 const { sequelize, connectDB } = require("./config/db");
+const setupAssociations = require("./models/associations");
+
+// Setup associations BEFORE anything else
+setupAssociations();
+
+// Import routes
 const authRoutes = require("./routes/auth.routes");
 const assetRoutes = require("./routes/assets.routes");
 const roleManageRoutes = require("./routes/roleManagement.routes");
@@ -19,11 +25,17 @@ require('dotenv').config();
 // Connect DB FIRST
 connectDB();
 
-// Sync Sequelize models
+// Sync Sequelize models - Using force: true for clean slate
 sequelize
-  .sync({ alter: true })
-  .then(() => console.log("✅ Models synced"))
-  .catch((err) => console.error("❌ Sync error:", err));
+  .sync({ force: true })  // This will drop and recreate all tables
+  .then(() => {
+    console.log("✅ Models synced successfully");
+    console.log("All tables created successfully");
+  })
+  .catch((err) => {
+    console.error("❌ Sync error:", err);
+    console.error("Error details:", err.message);
+  });
 
 // Routes
 app.use("/api/auth", authRoutes);

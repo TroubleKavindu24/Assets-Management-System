@@ -1,7 +1,5 @@
-// models/Asset.js
 const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/db");
-const constants = require("../constants/app.constants");
 
 const Asset = sequelize.define("Asset", {
   asset_id: {
@@ -13,27 +11,27 @@ const Asset = sequelize.define("Asset", {
     type: DataTypes.STRING(100),
     allowNull: false,
     unique: true,
-    validate: {
-      notEmpty: true,
-    },
   },
   asset_type: {
-    type: DataTypes.ENUM(...constants.ASSET_TYPES),
+    type: DataTypes.ENUM("Laptop", "Machine", "Printer", "Other"),
     allowNull: false,
   },
   brand: {
-    type: DataTypes.ENUM(...constants.ASSET_BRANDS),
+    type: DataTypes.STRING(50),
     defaultValue: "N/A",
+    allowNull: true,
   },
   os: {
-    type: DataTypes.ENUM(...constants.ASSET_OS),
+    type: DataTypes.STRING(50),
     defaultValue: "N/A",
+    allowNull: true,
   },
   purchase_date: {
     type: DataTypes.DATE,
+    allowNull: true,
   },
   status: {
-    type: DataTypes.ENUM(...constants.ASSET_STATUS),
+    type: DataTypes.ENUM("AVAILABLE", "ALLOCATED", "UNDER_REPAIR", "RETIRED"),
     defaultValue: "AVAILABLE",
   },
 }, {

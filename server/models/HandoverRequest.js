@@ -1,5 +1,5 @@
 const { DataTypes } = require("sequelize");
-const {sequelize} = require("../config/db");
+const { sequelize } = require("../config/db");
 
 const HandoverRequest = sequelize.define("HandoverRequest", {
   handover_id: {
@@ -16,11 +16,12 @@ const HandoverRequest = sequelize.define("HandoverRequest", {
     allowNull: false,
   },
   requested_by: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.STRING,
     allowNull: false,
   },
   condition_note: {
     type: DataTypes.STRING(255),
+    allowNull: true,
   },
   handover_date: {
     type: DataTypes.DATE,
