@@ -7,7 +7,11 @@ const AssetAllocation = sequelize.define("AssetAllocation", {
     primaryKey: true,
     autoIncrement: true,
   },
-
+  req_id: {  
+    type: DataTypes.INTEGER,
+    allowNull: true,  
+  },
+  
   asset_id: {  // ✅ ADD THIS
     type: DataTypes.INTEGER,
     allowNull: false,
