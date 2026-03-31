@@ -1,5 +1,6 @@
+// models/Department.js
 const { DataTypes } = require("sequelize");
-const {sequelize} = require("../config/db");
+const { sequelize } = require("../config/db");
 
 const Department = sequelize.define("Department", {
   department_id: {
@@ -8,16 +9,21 @@ const Department = sequelize.define("Department", {
     autoIncrement: true,
   },
   department_name: {
-    type: DataTypes.STRING(100),
+    type: DataTypes.ENUM("IT", "Finance", "Legal", "Treasury", "Gold Loan", "Fixed Deposit", "N/A"),
+    defaultValue: "N/A",
     allowNull: false,
   },
   branch_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    references: {
+      model: 'branches',
+      key: 'branch_id'
+    }
   },
 }, {
   tableName: "departments",
-  timestamps: false,
+  timestamps: true, // Add timestamps
   underscored: true,
 });
 
