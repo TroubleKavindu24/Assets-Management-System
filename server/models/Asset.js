@@ -1,3 +1,4 @@
+// models/Asset.js (with ENUM for brand and OS)
 const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/db");
 
@@ -11,24 +12,24 @@ const Asset = sequelize.define("Asset", {
     type: DataTypes.STRING(100),
     allowNull: false,
     unique: true,
+    validate: {
+      notEmpty: true,
+    },
   },
   asset_type: {
     type: DataTypes.ENUM("Laptop", "Machine", "Printer", "Other"),
     allowNull: false,
   },
   brand: {
-    type: DataTypes.STRING(50),
+    type: DataTypes.ENUM("HP", "DELL", "TOSHIBA", "Lenovo", "Apple", "N/A"),
     defaultValue: "N/A",
-    allowNull: true,
   },
   os: {
-    type: DataTypes.STRING(50),
+    type: DataTypes.ENUM("Windows 10", "Windows 11", "macOS", "N/A"),
     defaultValue: "N/A",
-    allowNull: true,
   },
   purchase_date: {
     type: DataTypes.DATE,
-    allowNull: true,
   },
   status: {
     type: DataTypes.ENUM("AVAILABLE", "ALLOCATED", "UNDER_REPAIR", "RETIRED"),

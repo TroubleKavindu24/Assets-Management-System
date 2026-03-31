@@ -15,19 +15,29 @@ exports.add = async (req, res) => {
       purchase_date
     } = req.body;
 
+    // Trim inputs
     serial_no = serial_no?.trim();
     brand = brand?.trim();
     os = os?.trim();
 
+    // Required validation
     if (!asset_type || !serial_no) {
       return res.status(400).json({ message: "Asset type and serial number are required" });
     }
 
+    // Validate asset type
     const validTypes = ["Laptop", "Machine", "Printer", "Other"];
     if (!validTypes.includes(asset_type)) {
-      return res.status(400).json({ message: "Invalid asset type" });
+      return res.status(400).json({ 
+        message: "Invalid asset type. Allowed: Laptop, Machine, Printer, Other" 
+      });
     }
 
+    // Set defaults for brand and OS if empty
+    const finalBrand = brand && brand !== "" ? brand : "N/A";
+    const finalOS = os && os !== "" ? os : "N/A";
+
+    // Prevent duplicate serial numbers
     const existing = await Asset.findOne({ where: { serial_no } });
     if (existing) {
       return res.status(409).json({ message: "Serial number already exists" });
@@ -36,8 +46,8 @@ exports.add = async (req, res) => {
     const asset = await Asset.create({
       asset_type,
       serial_no,
-      brand: brand || "N/A",
-      os: os || "N/A",
+      brand: finalBrand,
+      os: finalOS,
       purchase_date: purchase_date || null,
       status: "AVAILABLE"
     });

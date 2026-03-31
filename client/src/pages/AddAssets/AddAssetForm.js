@@ -1,6 +1,6 @@
 // src/components/AddAssetForm.jsx
 import React, { useState } from 'react';
-import './AddAssetForm.css'; 
+import './AddAssetForm.css';
 
 const AddAssetForm = () => {
   const [formData, setFormData] = useState({
@@ -15,6 +15,26 @@ const AddAssetForm = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Brand options based on your model's ENUM
+  const brandOptions = [
+    { value: '', label: '-- Select Brand --' },
+    { value: 'HP', label: 'HP' },
+    { value: 'DELL', label: 'DELL' },
+    { value: 'TOSHIBA', label: 'TOSHIBA' },
+    { value: 'Lenovo', label: 'Lenovo' },
+    { value: 'Apple', label: 'Apple' },
+    { value: 'N/A', label: 'N/A' },
+  ];
+
+  // OS options based on your model's ENUM
+  const osOptions = [
+    { value: '', label: '-- Select OS --' },
+    { value: 'Windows 10', label: 'Windows 10' },
+    { value: 'Windows 11', label: 'Windows 11' },
+    { value: 'macOS', label: 'macOS' },
+    { value: 'N/A', label: 'N/A' },
+  ];
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -23,121 +43,162 @@ const AddAssetForm = () => {
     }));
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  if (!formData.asset_type || !formData.serial_no.trim()) {
-    setError("Asset type and serial number are required");
-    return;
-  }
-
-  setMessage('');
-  setError('');
-  setLoading(true);
-
-  try {
-    const response = await fetch('http://localhost:5005/api/assets/add-asset', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...formData,
-        serial_no: formData.serial_no.trim(),
-      }),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.message);
+    if (!formData.asset_type || !formData.serial_no.trim()) {
+      setError("Asset type and serial number are required");
+      return;
     }
 
-    setMessage('Asset added successfully!');
-    setFormData({
-      asset_type: '',
-      serial_no: '',
-      brand: '',
-      os: '',
-      purchase_date: '',
-    });
+    setMessage('');
+    setError('');
+    setLoading(true);
 
-  } catch (err) {
-    setError(err.message);
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      const response = await fetch('http://localhost:5005/api/assets/add-asset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          serial_no: formData.serial_no.trim(),
+          brand: formData.brand || 'N/A',
+          os: formData.os || 'N/A',
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to add asset');
+      }
+
+      setMessage('✅ Asset added successfully!');
+      setFormData({
+        asset_type: '',
+        serial_no: '',
+        brand: '',
+        os: '',
+        purchase_date: '',
+      });
+
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      setError(err.message || 'Something went wrong');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="add-asset-container">
-      <h2>Add New Asset</h2>
+      <div className="form-header">
+        <h2>Add New Asset</h2>
+        <p>Fill in the details below to add a new asset to inventory</p>
+      </div>
 
       {message && <div className="success-message">{message}</div>}
       {error && <div className="error-message">{error}</div>}
 
       <form onSubmit={handleSubmit} className="asset-form">
-        <div className="form-group">
-          <label>Asset Type *</label>
-          <select
-            name="asset_type"
-            value={formData.asset_type}
-            onChange={handleChange}
-            required
+        <div className="form-row">
+          <div className="form-group">
+            <label>Asset Type *</label>
+            <select
+              name="asset_type"
+              value={formData.asset_type}
+              onChange={handleChange}
+              required
+              className="form-control"
+            >
+              <option value="">-- Select Type --</option>
+              <option value="Laptop">Laptop</option>
+              <option value="Machine">Machine</option>
+              <option value="Printer">Printer</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Serial Number *</label>
+            <input
+              type="text"
+              name="serial_no"
+              value={formData.serial_no}
+              onChange={handleChange}
+              required
+              placeholder="Enter serial number"
+              className="form-control"
+            />
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label>Brand</label>
+            <select
+              name="brand"
+              value={formData.brand}
+              onChange={handleChange}
+              className="form-control"
+            >
+              {brandOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Operating System</label>
+            <select
+              name="os"
+              value={formData.os}
+              onChange={handleChange}
+              className="form-control"
+            >
+              {osOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label>Purchase Date</label>
+            <input
+              type="date"
+              name="purchase_date"
+              value={formData.purchase_date}
+              onChange={handleChange}
+              className="form-control"
+            />
+          </div>
+        </div>
+
+        <div className="form-actions">
+          <button type="submit" disabled={loading} className="submit-btn">
+            {loading ? 'Adding Asset...' : '+ Add Asset'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setFormData({
+              asset_type: '',
+              serial_no: '',
+              brand: '',
+              os: '',
+              purchase_date: '',
+            })}
+            className="reset-btn"
           >
-            <option value="">-- Select Type --</option>
-            <option value="Laptop">Laptop</option>
-            <option value="Machine">Machine</option>
-            <option value="Printer">Printer</option>
-            <option value="Other">Other</option>
-          </select>
+            Clear Form
+          </button>
         </div>
-
-        <div className="form-group">
-          <label>Serial Number *</label>
-          <input
-            type="text"
-            name="serial_no"
-            value={formData.serial_no}
-            onChange={handleChange}
-            required
-            placeholder="Enter serial number"
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Brand</label>
-          <input
-            type="text"
-            name="brand"
-            value={formData.brand}
-            onChange={handleChange}
-            placeholder="e.g. Dell, HP, Lenovo"
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Operating System</label>
-          <input
-            type="text"
-            name="os"
-            value={formData.os}
-            onChange={handleChange}
-            placeholder="e.g. Windows 11 Pro, macOS Ventura"
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Purchase Date</label>
-          <input
-            type="date"
-            name="purchase_date"
-            value={formData.purchase_date}
-            onChange={handleChange}
-          />
-        </div>
-
-        <button type="submit" disabled={loading} className="submit-btn">
-          {loading ? 'Adding...' : 'Add Asset'}
-        </button>
       </form>
     </div>
   );
