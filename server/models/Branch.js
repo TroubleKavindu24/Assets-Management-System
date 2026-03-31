@@ -1,5 +1,6 @@
+// models/Branch.js
 const { DataTypes } = require("sequelize");
-const sequelize = require("../config/db");
+const { sequelize } = require("../config/db");
 
 const Branch = sequelize.define("Branch", {
   branch_id: {
@@ -8,12 +9,13 @@ const Branch = sequelize.define("Branch", {
     autoIncrement: true,
   },
   location: {
-    type: DataTypes.STRING(100),
+    type: DataTypes.ENUM("Avissawella", "Ampara", "Monaragala", "Chillaw", "Jaffna", "Kilinochci", "N/A"),
+    defaultValue: "N/A",
     allowNull: false,
   },
 }, {
   tableName: "branches",
-  timestamps: false,
+  timestamps: true, // Add timestamps for better tracking
   underscored: true,
 });
 
