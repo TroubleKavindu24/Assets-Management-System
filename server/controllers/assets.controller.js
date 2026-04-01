@@ -121,18 +121,41 @@ exports.allocateAsset = async (req, res) => {
     const {
       serial_no,
       ip_address,
+      branch_id,
       department_id,
       allocated_by,
       allocated_date,
       return_date
     } = req.body;
 
-    if (!serial_no || !ip_address || !department_id || !allocated_by) {
+    // Validation
+    if (!serial_no || !ip_address || !branch_id || !department_id || !allocated_by) {
       return res.status(400).json({
-        message: "Missing required fields"
+        message: "Missing required fields: serial_no, ip_address, branch_id, department_id, allocated_by"
       });
     }
 
+    // Verify branch exists
+    const branch = await Branch.findByPk(branch_id);
+    if (!branch) {
+      return res.status(404).json({ message: "Branch not found" });
+    }
+
+    // Verify department exists and belongs to the branch
+    const department = await Department.findOne({
+      where: { 
+        department_id: department_id,
+        branch_id: branch_id
+      }
+    });
+    
+    if (!department) {
+      return res.status(404).json({ 
+        message: "Department not found or does not belong to the selected branch" 
+      });
+    }
+
+    // Find asset using serial_no
     const asset = await Asset.findOne({
       where: { serial_no }
     });
@@ -141,28 +164,36 @@ exports.allocateAsset = async (req, res) => {
       return res.status(404).json({ message: "Asset not found" });
     }
 
+    // Check availability
     if (asset.status !== "AVAILABLE") {
       return res.status(400).json({
-        message: "Asset is not AVAILABLE"
+        message: `Asset is not AVAILABLE. Current status: ${asset.status}`
       });
     }
 
+    // Create allocation with branch_id
     const allocation = await AssetAllocation.create({
       asset_id: asset.asset_id,
       serial_no: asset.serial_no,
       ip_address,
+      branch_id,
       department_id,
       allocated_by,
       allocated_date: allocated_date || new Date(),
       return_date: return_date || null
     });
 
+    // Update asset status
     asset.status = "ALLOCATED";
     await asset.save();
 
     return res.status(201).json({
       message: "Asset allocated successfully",
-      data: allocation
+      data: {
+        allocation,
+        branch: branch.location,
+        department: department.department_name
+      }
     });
 
   } catch (error) {
@@ -173,6 +204,7 @@ exports.allocateAsset = async (req, res) => {
     });
   }
 };
+
 
 exports.getAllAllocations = async (req, res) => {
   try {
