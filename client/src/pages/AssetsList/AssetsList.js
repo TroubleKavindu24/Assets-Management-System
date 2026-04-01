@@ -1,11 +1,17 @@
 // src/components/AssetList.jsx
 import React, { useState, useEffect } from 'react';
 import './AssetList.css';
+import AllocateAssetModal from './AllocateAssetModal';
+import HandoverAssetModal from './HandoverAssetModal';
+
 
 const AssetList = () => {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showAllocateModal, setShowAllocateModal] = useState(false);
+  const [showHandoverModal, setShowHandoverModal] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState(null);
 
   useEffect(() => {
     fetchAssets();
@@ -26,6 +32,23 @@ const AssetList = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAllocateClick = (asset) => {
+    setSelectedAsset(asset);
+    setShowAllocateModal(true);
+  };
+
+  const handleHandoverClick = (asset) => {
+    setSelectedAsset(asset);
+    setShowHandoverModal(true);
+  };
+
+  const handleModalClose = () => {
+    setShowAllocateModal(false);
+    setShowHandoverModal(false);
+    setSelectedAsset(null);
+    fetchAssets(); // Refresh the list
   };
 
   const getStatusColor = (status) => {
@@ -62,6 +85,7 @@ const AssetList = () => {
                 <th>OS</th>
                 <th>Status</th>
                 <th>Purchase Date</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -78,12 +102,44 @@ const AssetList = () => {
                     </span>
                   </td>
                   <td>{asset.purchase_date ? new Date(asset.purchase_date).toLocaleDateString() : '-'}</td>
+                  <td className="action-buttons">
+                    <button 
+                      className="allocate-btn"
+                      onClick={() => handleAllocateClick(asset)}
+                      disabled={asset.status !== 'AVAILABLE'}
+                      title={asset.status !== 'AVAILABLE' ? 'Asset not available for allocation' : 'Allocate this asset'}
+                    >
+                      Allocate
+                    </button>
+                    <button 
+                      className="handover-btn"
+                      onClick={() => handleHandoverClick(asset)}
+                      disabled={asset.status !== 'ALLOCATED'}
+                      title={asset.status !== 'ALLOCATED' ? 'Asset is not allocated' : 'Handover this asset'}
+                    >
+                      Handover
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+
+      {/* Allocation Modal */}
+      <AllocateAssetModal
+        isOpen={showAllocateModal}
+        onClose={handleModalClose}
+        asset={selectedAsset}
+      />
+
+      {/* Handover Modal */}
+      <HandoverAssetModal
+        isOpen={showHandoverModal}
+        onClose={handleModalClose}
+        asset={selectedAsset}
+      />
     </div>
   );
 };
