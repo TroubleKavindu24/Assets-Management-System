@@ -1,6 +1,4 @@
 // models/associations.js
-// This file defines relationships WITHOUT foreign key constraints to avoid compatibility issues
-
 const Branch = require("./Branch");
 const Department = require("./Department");
 const User = require("./User");
@@ -11,73 +9,77 @@ const HandoverRequest = require("./HandoverRequest");
 
 function setupAssociations() {
   
-  // Branch - Department (without foreign key constraints)
+  // Branch → Department (One-to-Many)
   Branch.hasMany(Department, { 
     foreignKey: "branch_id",
-    constraints: false  // ✅ No foreign key constraint
+    as: "departments",
+    onDelete: "CASCADE",
+    onUpdate: "CASCADE"
   });
   Department.belongsTo(Branch, { 
     foreignKey: "branch_id",
-    constraints: false  // ✅ No foreign key constraint
+    as: "branch",
+    onDelete: "CASCADE",
+    onUpdate: "CASCADE"
   });
 
-  // Department - User
+  // Department → User
   Department.hasMany(User, { 
     foreignKey: "department_id",
+    as: "users",
     constraints: false
   });
   User.belongsTo(Department, { 
     foreignKey: "department_id",
+    as: "department",
     constraints: false
   });
 
-  // Department - AssetRequest
-  Department.hasMany(AssetRequest, { 
-    foreignKey: "department_id",
-    constraints: false
-  });
-  AssetRequest.belongsTo(Department, { 
-    foreignKey: "department_id",
-    constraints: false
-  });
-
-  // Department - AssetAllocation
+  // Department → AssetAllocation
   Department.hasMany(AssetAllocation, { 
     foreignKey: "department_id",
+    as: "allocations",
     constraints: false
   });
   AssetAllocation.belongsTo(Department, { 
     foreignKey: "department_id",
+    as: "department",
     constraints: false
   });
 
-  // Asset - AssetAllocation
+  // Branch → AssetAllocation
+  Branch.hasMany(AssetAllocation, { 
+    foreignKey: "branch_id",
+    as: "allocations",
+    constraints: false
+  });
+  AssetAllocation.belongsTo(Branch, { 
+    foreignKey: "branch_id",
+    as: "branch",
+    constraints: false
+  });
+
+  // Asset → AssetAllocation
   Asset.hasMany(AssetAllocation, { 
     foreignKey: "asset_id",
+    as: "allocations",
     constraints: false
   });
   AssetAllocation.belongsTo(Asset, { 
     foreignKey: "asset_id",
+    as: "asset",
     constraints: false
   });
 
-  // Asset - HandoverRequest
+  // Asset → HandoverRequest
   Asset.hasMany(HandoverRequest, { 
     foreignKey: "asset_id",
+    as: "handovers",
     constraints: false
   });
   HandoverRequest.belongsTo(Asset, { 
     foreignKey: "asset_id",
-    constraints: false
-  });
-
-  // AssetRequest - AssetAllocation (optional)
-  AssetRequest.hasMany(AssetAllocation, { 
-    foreignKey: "req_id",
-    constraints: false
-  });
-  AssetAllocation.belongsTo(AssetRequest, { 
-    foreignKey: "req_id",
+    as: "asset",
     constraints: false
   });
 }

@@ -32,7 +32,7 @@ const AllocateAssetModal = ({ isOpen, onClose, asset }) => {
 
   const fetchDepartments = async () => {
     try {
-      const response = await fetch('http://localhost:5005/api/assets/departments');
+      const response = await fetch('http://localhost:5005/api/departments/get-departments');
       const data = await response.json();
       if (response.ok) {
         setDepartments(data.data || []);

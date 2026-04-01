@@ -11,6 +11,7 @@ const authRoutes = require("./routes/auth.routes");
 const assetRoutes = require("./routes/assets.routes");
 const roleManageRoutes = require("./routes/roleManagement.routes");
 const permissionRoutes = require("./routes/permission.routes");
+const departmentsRoutes = require("./routes/departments.routes");
 
 const errorHandler = require("./middlewares/errorMiddleware");
 
@@ -42,6 +43,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/assets", assetRoutes);
 app.use("/api/rolemanagement", roleManageRoutes);
 app.use("/api/permissions", permissionRoutes);
+app.use("/api/departments", departmentsRoutes);
 
 // Error handler (LAST)
 app.use(errorHandler);

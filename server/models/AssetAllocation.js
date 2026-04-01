@@ -1,3 +1,4 @@
+// models/AssetAllocation.js
 const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/db");
 
@@ -17,6 +18,10 @@ const AssetAllocation = sequelize.define("AssetAllocation", {
   },
   ip_address: {
     type: DataTypes.STRING,
+    allowNull: false,
+  },
+  branch_id: {
+    type: DataTypes.INTEGER,
     allowNull: false,
   },
   department_id: {

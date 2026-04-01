@@ -1,7 +1,7 @@
 const Asset = require("../models/Asset.js");
 const AssetAllocation = require("../models/AssetAllocation.js");
 const HandoverRequest = require("../models/HandoverRequest.js");
-const AssetRequest = require("../models/AssetRequest.js");
+const Branch = require("../models/Branch.js");
 const Department = require("../models/Department.js");
 const User = require("../models/User.js");
 
