@@ -20,5 +20,7 @@ router.post("/asset-handover", assetController.asset_handover);
 router.get("/serial/:serial_no", assetController.getAssetDetailsBySerialNo);
 router.get("/serial/:serial_no/history", assetController.getAllocationHistoryBySerialNo);
 
+router.get("/allocated-assets", assetController.getAllocatedAssets);
+
 
 module.exports = router;

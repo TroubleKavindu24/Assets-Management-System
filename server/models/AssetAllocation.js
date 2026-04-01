@@ -28,6 +28,7 @@ const AssetAllocation = sequelize.define("AssetAllocation", {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
+  
   allocated_by: {
     type: DataTypes.STRING,
     allowNull: false,

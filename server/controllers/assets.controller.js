@@ -280,6 +280,48 @@ exports.getAllocationsByBranch = async (req, res) => {
   }
 };
 
+// exports.asset_handover = async (req, res) => {
+//   try {
+//     const {
+//       asset_id,
+//       department_id,
+//       requested_by,
+//       condition_note,
+//       handover_date
+//     } = req.body;
+
+//     const asset = await Asset.findByPk(asset_id);
+//     if (!asset) {
+//       return res.status(404).json({ message: "Asset not found" });
+//     }
+
+//     if (asset.status !== "ALLOCATED") {
+//       return res.status(400).json({ message: "Asset is not allocated" });
+//     }
+
+//     const handover = await HandoverRequest.create({
+//       asset_id,
+//       department_id,
+//       requested_by,
+//       condition_note,
+//       handover_date: handover_date || new Date()
+//     });
+
+//     asset.status = "AVAILABLE";
+//     await asset.save();
+
+//     return res.status(200).json({
+//       message: "Asset handed over successfully",
+//       data: handover
+//     });
+
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
+// controllers/assets.controller.js - Update handover function
 exports.asset_handover = async (req, res) => {
   try {
     const {
@@ -290,6 +332,7 @@ exports.asset_handover = async (req, res) => {
       handover_date
     } = req.body;
 
+    // Check asset
     const asset = await Asset.findByPk(asset_id);
     if (!asset) {
       return res.status(404).json({ message: "Asset not found" });
@@ -299,14 +342,31 @@ exports.asset_handover = async (req, res) => {
       return res.status(400).json({ message: "Asset is not allocated" });
     }
 
+    // Find and update the allocation record (instead of creating new)
+    const allocation = await AssetAllocation.findOne({
+      where: { 
+        asset_id: asset_id,
+        return_date: null // Find active allocation
+      }
+    });
+
+    if (allocation) {
+      // Update existing allocation with return date
+      allocation.return_date = handover_date || new Date();
+      await allocation.save();
+    }
+
+    // Save handover record
     const handover = await HandoverRequest.create({
       asset_id,
       department_id,
       requested_by,
       condition_note,
-      handover_date: handover_date || new Date()
+      handover_date: handover_date || new Date(),
+      status: "COMPLETED"
     });
 
+    // Update asset status
     asset.status = "AVAILABLE";
     await asset.save();
 
@@ -401,5 +461,50 @@ exports.getAssetDetailsBySerialNo = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: error.message });
+  }
+};
+
+// Get allocated assets (active allocations with asset status ALLOCATED)
+exports.getAllocatedAssets = async (req, res) => {
+  try {
+    // First, get all allocations
+    const allocations = await AssetAllocation.findAll({
+      include: [
+        {
+          model: Branch,
+          as: "branch",
+          attributes: ["branch_id", "location"]
+        },
+        {
+          model: Department,
+          as: "department",
+          attributes: ["department_id", "department_name"]
+        },
+        {
+          model: Asset,
+          as: "asset",
+          where: { status: "ALLOCATED" }, // Only assets with ALLOCATED status
+          attributes: ["asset_id", "serial_no", "asset_type", "brand", "os", "status"]
+        }
+      ],
+      order: [["allocated_date", "DESC"]]
+    });
+
+    // Filter to only include allocations where asset status is ALLOCATED
+    const activeAllocations = allocations.filter(alloc => 
+      alloc.asset && alloc.asset.status === "ALLOCATED"
+    );
+
+    return res.status(200).json({
+      success: true,
+      count: activeAllocations.length,
+      data: activeAllocations
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Failed to fetch allocated assets",
+      error: error.message
+    });
   }
 };

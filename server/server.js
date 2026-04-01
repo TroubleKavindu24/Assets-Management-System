@@ -3,7 +3,6 @@ const cors = require("cors");
 const { sequelize, connectDB } = require("./config/db");
 const setupAssociations = require("./models/associations");
 
-// Setup associations BEFORE anything else
 setupAssociations();
 
 // Import routes
@@ -28,7 +27,7 @@ connectDB();
 
 // Sync Sequelize models - Using force: true for clean slate
 sequelize
-  .sync({ force: true })  // This will drop and recreate all tables
+  .sync({ alter: true })  // This will drop and recreate all tables
   .then(() => {
     console.log("✅ Models synced successfully");
     console.log("All tables created successfully");

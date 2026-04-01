@@ -1,63 +1,113 @@
-import React, { useEffect, useState, useContext } from "react";
-import axios from "axios";
-import { AuthContext } from "../../context/AuthContext";
+// src/components/AllocationList.jsx
+import React, { useState, useEffect } from 'react';
+import './AllocationList.css';
 
 const AllocationList = () => {
   const [allocations, setAllocations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  
-  const { user } = useContext(AuthContext);
-
-  // Fetch all allocations
-  const fetchAllocations = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get("http://localhost:5005/api/assets/getAllAllocations");
-      setAllocations(response.data);
-      setLoading(false);
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || "Failed to fetch allocations");
-      setLoading(false);
-    }
-  };
+  const [error, setError] = useState('');
+  const [handoverLoading, setHandoverLoading] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedAllocation, setSelectedAllocation] = useState(null);
+  const [filter, setFilter] = useState('all'); // 'all', 'active', 'completed'
 
   useEffect(() => {
     fetchAllocations();
   }, []);
 
-  // Handle return asset
-  const handleReturnAsset = async (allocationId, assetId) => {
-    if (window.confirm("Are you sure you want to mark this asset as returned?")) {
-      try {
-        await axios.put(`http://localhost:5005/api/assets/return-asset/${allocationId}`, {
-          asset_id: assetId,
-          return_date: new Date().toISOString().split("T")[0]
-        });
-        alert("Asset returned successfully!");
-        fetchAllocations(); // Refresh the list
-      } catch (err) {
-        console.error(err);
-        alert(err.response?.data?.message || "Failed to return asset");
+  const fetchAllocations = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5005/api/assets/allocated-assets');
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setAllocations(data.data || []);
+      } else {
+        setError(data.message || 'Failed to fetch allocations');
       }
+    } catch (err) {
+      setError('Network error: ' + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Format date
+  const handleHandover = async (allocation) => {
+    if (!window.confirm(`Are you sure you want to handover asset ${allocation.serial_no}?`)) {
+      return;
+    }
+
+    setHandoverLoading(allocation.allocation_id);
+    
+    try {
+      // Call handover API
+      const handoverResponse = await fetch('http://localhost:5005/api/assets/asset-handover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          asset_id: allocation.asset_id,
+          department_id: allocation.department_id,
+          requested_by: allocation.allocated_by,
+          condition_note: 'Handed over successfully',
+          handover_date: new Date().toISOString().split('T')[0]
+        }),
+      });
+
+      const result = await handoverResponse.json();
+
+      if (!handoverResponse.ok) {
+        throw new Error(result.message || 'Handover failed');
+      }
+
+      // Update the allocation status to COMPLETED in the UI
+      setAllocations(prev => prev.map(alloc => 
+        alloc.allocation_id === allocation.allocation_id 
+          ? { ...alloc, allocation_status: 'COMPLETED', return_date: new Date().toISOString() }
+          : alloc
+      ));
+      
+      alert(`✅ Asset ${allocation.serial_no} handed over successfully!`);
+      
+    } catch (err) {
+      alert('Error: ' + err.message);
+      console.error('Handover error:', err);
+    } finally {
+      setHandoverLoading(null);
+    }
+  };
+
+  const handleMoreClick = (allocation) => {
+    setSelectedAllocation(allocation);
+    setShowDetailsModal(true);
+  };
+
   const formatDate = (dateString) => {
-    if (!dateString) return "-";
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric"
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     });
+  };
+
+  // Filter allocations based on selected filter
+  const filteredAllocations = allocations.filter(alloc => {
+    if (filter === 'active') return alloc.allocation_status === 'ACTIVE';
+    if (filter === 'completed') return alloc.allocation_status === 'COMPLETED';
+    return true;
+  });
+
+  const stats = {
+    total: allocations.length,
+    active: allocations.filter(a => a.allocation_status === 'ACTIVE').length,
+    completed: allocations.filter(a => a.allocation_status === 'COMPLETED').length
   };
 
   if (loading) {
     return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.loader}></div>
+      <div className="loading-container">
+        <div className="loader"></div>
         <p>Loading allocations...</p>
       </div>
     );
@@ -65,74 +115,161 @@ const AllocationList = () => {
 
   if (error) {
     return (
-      <div style={styles.errorContainer}>
-        <p style={styles.errorMessage}>{error}</p>
-        <button onClick={fetchAllocations} style={styles.retryButton}>
-          Retry
-        </button>
+      <div className="error-container">
+        <p className="error-message">{error}</p>
+        <button onClick={fetchAllocations} className="retry-btn">Retry</button>
       </div>
     );
   }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h1 style={styles.title}>Asset Allocations</h1>
-        {user && (
-          <div style={styles.userInfo}>
-            <span style={styles.userName}>{user.user_name}</span>
-            <span style={styles.userRole}>({user.role})</span>
-          </div>
-        )}
+    <div className="allocation-list-container">
+      <div className="list-header">
+        <div>
+          <h2>Asset Allocations</h2>
+          <p className="subtitle">Complete history of all asset allocations</p>
+        </div>
+        <button onClick={fetchAllocations} className="refresh-btn">
+          🔄 Refresh
+        </button>
       </div>
 
-      {/* Allocations Table */}
-      {allocations.length === 0 ? (
-        <div style={styles.emptyState}>
-          <p>No allocations found</p>
+      {/* Filter Tabs */}
+      <div className="filter-tabs">
+        <button 
+          className={`filter-tab ${filter === 'all' ? 'active' : ''}`}
+          onClick={() => setFilter('all')}
+        >
+          All ({stats.total})
+        </button>
+        <button 
+          className={`filter-tab ${filter === 'active' ? 'active' : ''}`}
+          onClick={() => setFilter('active')}
+        >
+          Active ({stats.active})
+        </button>
+        <button 
+          className={`filter-tab ${filter === 'completed' ? 'active' : ''}`}
+          onClick={() => setFilter('completed')}
+        >
+          Completed ({stats.completed})
+        </button>
+      </div>
+
+      {/* Stats Summary */}
+      <div className="stats-summary">
+        <div className="stat-card">
+          <span className="stat-label">Total Allocations</span>
+          <span className="stat-value">{stats.total}</span>
+        </div>
+        <div className="stat-card active">
+          <span className="stat-label">Active Allocations</span>
+          <span className="stat-value">{stats.active}</span>
+        </div>
+        <div className="stat-card completed">
+          <span className="stat-label">Completed</span>
+          <span className="stat-value">{stats.completed}</span>
+        </div>
+      </div>
+
+      {filteredAllocations.length === 0 ? (
+        <div className="no-data">
+          <div className="no-data-icon">📊</div>
+          <h3>No {filter === 'active' ? 'Active' : filter === 'completed' ? 'Completed' : ''} Allocations Found</h3>
+          <p>
+            {filter === 'active' 
+              ? 'No assets are currently allocated. Allocate an asset to see it here!' 
+              : filter === 'completed'
+              ? 'No completed allocations yet.'
+              : 'No allocations have been made yet. Start by allocating an asset!'}
+          </p>
+          {filter === 'active' && (
+            <button onClick={() => window.location.href = '/allocate-asset'} className="allocate-now-btn">
+              + Allocate Asset Now
+            </button>
+          )}
         </div>
       ) : (
-        <div style={styles.tableWrapper}>
-          <table style={styles.table}>
+        <div className="table-responsive">
+          <table className="allocation-table">
             <thead>
-              <tr style={styles.headerRow}>
-                <th style={styles.th}>Serial No</th>
-                <th style={styles.th}>Department</th>
-                <th style={styles.th}>IP Address</th>
-                <th style={styles.th}>Allocated By</th>
-                <th style={styles.th}>Allocated Date</th>
-                <th style={styles.th}>Return Date</th>
-                {(user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") && (
-                  <th style={styles.th}>Actions</th>
-                )}
+              <tr>
+                <th>Serial No</th>
+                <th>IP Address</th>
+                <th>Asset Type</th>
+                <th>Branch</th>
+                <th>Department</th>
+                <th>Allocated By</th>
+                <th>Allocated Date</th>
+                <th>Handover Date</th>
+                <th>Status</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {allocations.map((item) => (
-                <tr key={item.allocation_id} style={styles.row}>
-                  <td style={styles.td}>
-                    <code style={styles.serialCode}>{item.serial_no || "-"}</code>
+              {filteredAllocations.map((allocation) => (
+                <tr key={allocation.allocation_id}>
+                  <td>
+                    <strong className="serial-number">{allocation.serial_no}</strong>
                   </td>
-                  <td style={styles.td}>
-                    <span style={styles.departmentBadge}>{item.department_id}</span>
+                  <td>
+                    <code className="ip-address">{allocation.ip_address}</code>
                   </td>
-                  <td style={styles.td}>
-                    <code style={styles.ipAddress}>{item.ip_address || "-"}</code>
-                  </td>
-                  <td style={styles.td}>{item.allocated_by}</td>
-                  <td style={styles.td}>{formatDate(item.allocated_date)}</td>
-                  <td style={styles.td}>
-                    {item.return_date ? formatDate(item.return_date) : "-"}
-                  </td>
-                  <td style={styles.td}>
-                    <span
-                      style={{
-                        ...styles.statusBadge,
-                        ...(item.return_date ? styles.statusReturned : styles.statusActive),
-                      }}
-                    >
-                      {item.return_date ? "ALLOCATED" : "ACTIVE"}
+                  <td>
+                    <span className="asset-type-badge">
+                      {allocation.asset?.asset_type || '-'}
                     </span>
+                  </td>
+                  <td>
+                    <span className="branch-info">
+                      🏢 {allocation.branch?.location || '-'}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="dept-info">
+                      📍 {allocation.department?.department_name || '-'}
+                    </span>
+                  </td>
+                  <td>{allocation.allocated_by}</td>
+                  <td>{formatDate(allocation.allocated_date)}</td>
+                  <td>
+                    {allocation.return_date ? formatDate(allocation.return_date) : '-'}
+                  </td>
+                  <td>
+                    {allocation.allocation_status === 'ACTIVE' ? (
+                      <span className="badge-active">Active</span>
+                    ) : (
+                      <span className="badge-completed">Completed</span>
+                    )}
+                  </td>
+                  <td className="action-cell">
+                    <div className="action-buttons">
+                      <button
+                        className="more-btn"
+                        onClick={() => handleMoreClick(allocation)}
+                        title="View details"
+                      >
+                        📋 More
+                      </button>
+                      {allocation.allocation_status === 'ACTIVE' ? (
+                        <button
+                          className="handover-btn"
+                          onClick={() => handleHandover(allocation)}
+                          disabled={handoverLoading === allocation.allocation_id}
+                          title="Handover this asset"
+                        >
+                          {handoverLoading === allocation.allocation_id ? (
+                            <>⏳ Processing...</>
+                          ) : (
+                            <>🔄 Handover</>
+                          )}
+                        </button>
+                      ) : (
+                        <button className="completed-btn" disabled>
+                          ✓ Completed
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -140,164 +277,96 @@ const AllocationList = () => {
           </table>
         </div>
       )}
+
+      {/* Details Modal */}
+      {showDetailsModal && selectedAllocation && (
+        <div className="modal-overlay" onClick={() => setShowDetailsModal(false)}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Allocation Details</h2>
+              <button className="close-btn" onClick={() => setShowDetailsModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="details-grid">
+                <div className="detail-item">
+                  <label>Serial Number:</label>
+                  <span><strong>{selectedAllocation.serial_no}</strong></span>
+                </div>
+                <div className="detail-item">
+                  <label>IP Address:</label>
+                  <span><code>{selectedAllocation.ip_address}</code></span>
+                </div>
+                <div className="detail-item">
+                  <label>Asset Type:</label>
+                  <span>{selectedAllocation.asset?.asset_type || '-'}</span>
+                </div>
+                <div className="detail-item">
+                  <label>Brand:</label>
+                  <span>{selectedAllocation.asset?.brand || '-'}</span>
+                </div>
+                <div className="detail-item">
+                  <label>OS:</label>
+                  <span>{selectedAllocation.asset?.os || '-'}</span>
+                </div>
+                <div className="detail-item">
+                  <label>Branch:</label>
+                  <span>{selectedAllocation.branch?.location || '-'}</span>
+                </div>
+                <div className="detail-item">
+                  <label>Department:</label>
+                  <span>{selectedAllocation.department?.department_name || '-'}</span>
+                </div>
+                <div className="detail-item">
+                  <label>Allocated By:</label>
+                  <span>{selectedAllocation.allocated_by}</span>
+                </div>
+                <div className="detail-item">
+                  <label>Allocated Date:</label>
+                  <span>{formatDate(selectedAllocation.allocated_date)}</span>
+                </div>
+                {selectedAllocation.return_date && (
+                  <div className="detail-item">
+                    <label>Handover Date:</label>
+                    <span>{formatDate(selectedAllocation.return_date)}</span>
+                  </div>
+                )}
+                <div className="detail-item">
+                  <label>Status:</label>
+                  <span>
+                    {selectedAllocation.allocation_status === 'ACTIVE' ? (
+                      <span className="badge-active">Active</span>
+                    ) : (
+                      <span className="badge-completed">Completed</span>
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              {selectedAllocation.allocation_status === 'ACTIVE' ? (
+                <button 
+                  className="handover-from-modal-btn"
+                  onClick={() => {
+                    setShowDetailsModal(false);
+                    handleHandover(selectedAllocation);
+                  }}
+                >
+                  🔄 Handover Asset
+                </button>
+              ) : (
+                <button className="completed-modal-btn" disabled>
+                  ✓ Already Handed Over
+                </button>
+              )}
+              <button className="close-modal-btn" onClick={() => setShowDetailsModal(false)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-};
-
-const styles = {
-  container: {
-    padding: "20px",
-    maxWidth: "1400px",
-    margin: "0 auto",
-    backgroundColor: "#f9fafb",
-    minHeight: "100vh",
-  },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "30px",
-    flexWrap: "wrap",
-  },
-  title: {
-    color: "#1f2937",
-    fontSize: "28px",
-    margin: 0,
-  },
-  userInfo: {
-    padding: "8px 16px",
-    backgroundColor: "white",
-    borderRadius: "8px",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-  },
-  userName: {
-    fontWeight: "bold",
-    color: "#3b82f6",
-  },
-  userRole: {
-    marginLeft: "8px",
-    color: "#6b7280",
-    fontSize: "14px",
-  },
-  tableWrapper: {
-    overflowX: "auto",
-    backgroundColor: "white",
-    borderRadius: "8px",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-  },
-  headerRow: {
-    backgroundColor: "#1f2937",
-    color: "white",
-  },
-  th: {
-    padding: "12px",
-    textAlign: "left",
-    fontWeight: "600",
-    fontSize: "14px",
-  },
-  row: {
-    borderBottom: "1px solid #e5e7eb",
-    transition: "background-color 0.2s",
-  },
-  td: {
-    padding: "12px",
-    fontSize: "14px",
-  },
-  serialCode: {
-    backgroundColor: "#f3f4f6",
-    padding: "4px 6px",
-    borderRadius: "4px",
-    fontFamily: "monospace",
-    fontSize: "12px",
-  },
-  ipAddress: {
-    backgroundColor: "#f3f4f6",
-    padding: "4px 6px",
-    borderRadius: "4px",
-    fontFamily: "monospace",
-    fontSize: "12px",
-  },
-  departmentBadge: {
-    backgroundColor: "#e0e7ff",
-    color: "#4338ca",
-    padding: "4px 8px",
-    borderRadius: "4px",
-    fontSize: "12px",
-    fontWeight: "500",
-  },
-  statusBadge: {
-    padding: "4px 8px",
-    borderRadius: "4px",
-    fontSize: "12px",
-    fontWeight: "500",
-    display: "inline-block",
-  },
-  statusActive: {
-    backgroundColor: "#d1fae5",
-    color: "#065f46",
-  },
-  statusReturned: {
-    backgroundColor: "#fee2e2",
-    color: "#991b1b",
-  },
-  returnButton: {
-    backgroundColor: "#ef4444",
-    color: "white",
-    border: "none",
-    padding: "6px 12px",
-    borderRadius: "4px",
-    cursor: "pointer",
-    fontSize: "12px",
-    fontWeight: "500",
-    transition: "background-color 0.2s",
-  },
-  returnedText: {
-    color: "#10b981",
-    fontWeight: "500",
-    fontSize: "12px",
-  },
-  emptyState: {
-    textAlign: "center",
-    padding: "60px",
-    backgroundColor: "white",
-    borderRadius: "8px",
-    color: "#6b7280",
-  },
-  loadingContainer: {
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: "400px",
-  },
-  loader: {
-    border: "4px solid #f3f3f3",
-    borderTop: "4px solid #3b82f6",
-    borderRadius: "50%",
-    width: "40px",
-    height: "40px",
-    animation: "spin 1s linear infinite",
-  },
-  errorContainer: {
-    textAlign: "center",
-    padding: "60px",
-  },
-  errorMessage: {
-    color: "#ef4444",
-    marginBottom: "20px",
-  },
-  retryButton: {
-    backgroundColor: "#3b82f6",
-    color: "white",
-    border: "none",
-    padding: "10px 20px",
-    borderRadius: "6px",
-    cursor: "pointer",
-  },
 };
 
 export default AllocationList;
