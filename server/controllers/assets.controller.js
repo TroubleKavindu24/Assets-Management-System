@@ -243,6 +243,43 @@ exports.getAllAllocations = async (req, res) => {
   }
 };
 
+exports.getAllocationsByBranch = async (req, res) => {
+  try {
+    const { branch_id } = req.params;
+
+    const allocations = await AssetAllocation.findAll({
+      where: { branch_id },
+      include: [
+        {
+          model: Branch,
+          as: "branch",
+          attributes: ["location"]
+        },
+        {
+          model: Department,
+          as: "department",
+          attributes: ["department_name"]
+        },
+        {
+          model: Asset,
+          as: "asset",
+          attributes: ["serial_no", "asset_type", "brand"]
+        }
+      ],
+      order: [["allocated_date", "DESC"]]
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: allocations.length,
+      data: allocations
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
 exports.asset_handover = async (req, res) => {
   try {
     const {
