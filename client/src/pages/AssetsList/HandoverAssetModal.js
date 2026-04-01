@@ -10,8 +10,13 @@ const HandoverAssetModal = ({ isOpen, onClose, asset }) => {
     condition_note: '',
     handover_date: new Date().toISOString().split('T')[0],
   });
+  
+  const [currentAllocation, setCurrentAllocation] = useState(null);
   const [departments, setDepartments] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [selectedBranch, setSelectedBranch] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingAllocation, setLoadingAllocation] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -23,17 +28,65 @@ const HandoverAssetModal = ({ isOpen, onClose, asset }) => {
       setFormData({
         asset_id: asset.asset_id,
         department_id: '',
-        requested_by: loggedInUser.username || '',
+        requested_by: loggedInUser.username || loggedInUser.name || 'Unknown User',
         condition_note: '',
         handover_date: new Date().toISOString().split('T')[0],
       });
-      fetchDepartments();
+      fetchCurrentAllocation(asset.serial_no);
+      fetchBranches();
     }
   }, [isOpen, asset]);
 
-  const fetchDepartments = async () => {
+  const fetchCurrentAllocation = async (serialNo) => {
+    setLoadingAllocation(true);
     try {
-      const response = await fetch('http://localhost:5005/api/assets/departments');
+      const response = await fetch(`http://localhost:5005/api/assets/serial/${serialNo}`);
+      const data = await response.json();
+      
+      if (response.ok && data.allocation) {
+        setCurrentAllocation(data.allocation);
+        // Pre-select the branch and department from current allocation
+        if (data.allocation.branch_id) {
+          setSelectedBranch(data.allocation.branch_id.toString());
+          fetchDepartmentsByBranch(data.allocation.branch_id);
+          // Wait for departments to load then set department
+          setTimeout(() => {
+            setFormData(prev => ({
+              ...prev,
+              department_id: data.allocation.department_id?.toString() || ''
+            }));
+          }, 500);
+        }
+      } else {
+        setCurrentAllocation(null);
+      }
+    } catch (err) {
+      console.error('Error fetching allocation:', err);
+    } finally {
+      setLoadingAllocation(false);
+    }
+  };
+
+  const fetchBranches = async () => {
+    try {
+      const response = await fetch('http://localhost:5005/api/departments/branches');
+      const data = await response.json();
+      if (response.ok) {
+        setBranches(data.data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching branches:', err);
+    }
+  };
+
+  const fetchDepartmentsByBranch = async (branchId) => {
+    if (!branchId) {
+      setDepartments([]);
+      return;
+    }
+    
+    try {
+      const response = await fetch(`http://localhost:5005/api/departments/branch/${branchId}`);
       const data = await response.json();
       if (response.ok) {
         setDepartments(data.data || []);
@@ -41,6 +94,13 @@ const HandoverAssetModal = ({ isOpen, onClose, asset }) => {
     } catch (err) {
       console.error('Error fetching departments:', err);
     }
+  };
+
+  const handleBranchChange = (e) => {
+    const branchId = e.target.value;
+    setSelectedBranch(branchId);
+    setFormData((prev) => ({ ...prev, department_id: '' }));
+    fetchDepartmentsByBranch(branchId);
   };
 
   const handleChange = (e) => {
@@ -53,6 +113,12 @@ const HandoverAssetModal = ({ isOpen, onClose, asset }) => {
     setLoading(true);
     setMessage('');
     setError('');
+
+    if (!formData.department_id) {
+      setError('Please select a department');
+      setLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch('http://localhost:5005/api/assets/asset-handover', {
@@ -80,6 +146,18 @@ const HandoverAssetModal = ({ isOpen, onClose, asset }) => {
 
   if (!isOpen) return null;
 
+  // Get branch name from ID
+  const getBranchName = (branchId) => {
+    const branch = branches.find(b => b.branch_id === parseInt(branchId));
+    return branch ? branch.location : 'Unknown Branch';
+  };
+
+  // Get department name from ID
+  const getDepartmentName = (deptId) => {
+    const dept = departments.find(d => d.department_id === parseInt(deptId));
+    return dept ? dept.department_name : 'Unknown Department';
+  };
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
@@ -93,81 +171,118 @@ const HandoverAssetModal = ({ isOpen, onClose, asset }) => {
           {error && <div className="error-message">{error}</div>}
 
           <form onSubmit={handleSubmit} className="modal-form">
-            <div className="form-group">
-              <label>Asset Serial Number</label>
-              <input
-                type="text"
-                value={asset?.serial_no || ''}
-                readOnly
-                className="form-control read-only"
-              />
+            {/* Asset Information Section */}
+            <div className="info-section">
+              <h3>Asset Information</h3>
+              <div className="info-grid">
+                <div className="info-item">
+                  <label>Serial Number:</label>
+                  <span><strong>{asset?.serial_no}</strong></span>
+                </div>
+                <div className="info-item">
+                  <label>Asset Type:</label>
+                  <span>{asset?.asset_type}</span>
+                </div>
+                <div className="info-item">
+                  <label>Brand:</label>
+                  <span>{asset?.brand || 'N/A'}</span>
+                </div>
+                <div className="info-item">
+                  <label>Status:</label>
+                  <span className={`status-badge ${asset?.status === 'ALLOCATED' ? 'status-allocated' : ''}`}>
+                    {asset?.status}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div className="form-group">
-              <label>Asset Type</label>
-              <input
-                type="text"
-                value={asset?.asset_type || ''}
-                readOnly
-                className="form-control read-only"
-              />
-            </div>
+            {/* Current Allocation Section */}
+            {loadingAllocation ? (
+              <div className="loading-section">Loading current allocation...</div>
+            ) : currentAllocation ? (
+              <div className="info-section allocation-info">
+                <h3>Current Allocation Details</h3>
+                <div className="info-grid">
+                  <div className="info-item">
+                    <label>Branch:</label>
+                    <span className="highlight">
+                      🏢 {getBranchName(currentAllocation.branch_id)}
+                    </span>
+                  </div>
+                  <div className="info-item">
+                    <label>Department:</label>
+                    <span className="highlight">
+                      📍 {getDepartmentName(currentAllocation.department_id)}
+                    </span>
+                  </div>
+                  <div className="info-item">
+                    <label>IP Address:</label>
+                    <span>{currentAllocation.ip_address || 'N/A'}</span>
+                  </div>
+                  <div className="info-item">
+                    <label>Allocated By:</label>
+                    <span>{currentAllocation.allocated_by}</span>
+                  </div>
+                  <div className="info-item">
+                    <label>Allocated Date:</label>
+                    <span>{currentAllocation.allocated_date ? new Date(currentAllocation.allocated_date).toLocaleDateString() : 'N/A'}</span>
+                  </div>
+                  {currentAllocation.return_date && (
+                    <div className="info-item">
+                      <label>Expected Return:</label>
+                      <span>{new Date(currentAllocation.return_date).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="warning-message">
+                ⚠️ No active allocation found for this asset.
+              </div>
+            )}
 
-            <div className="form-group">
-              <label>Department *</label>
-              <select
-                name="department_id"
-                value={formData.department_id}
-                onChange={handleChange}
-                required
-                className="form-control"
-              >
-                <option value="">-- Select Department --</option>
-                {departments.map((dept) => (
-                  <option key={dept.department_id} value={dept.department_id}>
-                    {dept.department_name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Handover Form Section */}
+            <div className="info-section">
+              <h3>Handover Details</h3>
+              <div className="form-group">
+                <label>Handover By *</label>
+                <input
+                  type="text"
+                  name="requested_by"
+                  value={formData.requested_by}
+                  readOnly
+                  className="form-control read-only"
+                />
+                <small className="hint-text">Auto-filled with logged-in user: {formData.requested_by}</small>
+              </div>
 
-            <div className="form-group">
-              <label>Requested By *</label>
-              <input
-                type="text"
-                name="requested_by"
-                value={formData.requested_by}
-                readOnly
-                className="form-control read-only"
-              />
-            </div>
+              <div className="form-group">
+                <label>Condition Note</label>
+                <textarea
+                  name="condition_note"
+                  value={formData.condition_note}
+                  onChange={handleChange}
+                  placeholder="Describe the condition of the asset (e.g., Good, Minor scratches, Needs repair)"
+                  rows="3"
+                  className="form-control"
+                />
+              </div>
 
-            <div className="form-group">
-              <label>Condition Note</label>
-              <textarea
-                name="condition_note"
-                value={formData.condition_note}
-                onChange={handleChange}
-                placeholder="Describe the condition of the asset (e.g., Good, Minor scratches, Needs repair)"
-                rows="3"
-                className="form-control"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Handover Date</label>
-              <input
-                type="date"
-                name="handover_date"
-                value={formData.handover_date}
-                onChange={handleChange}
-                className="form-control"
-              />
+              <div className="form-group">
+                <label>Handover Date</label>
+                <input
+                  type="date"
+                  name="handover_date"
+                  value={formData.handover_date}
+                  onChange={handleChange}
+                  className="form-control"
+                />
+              </div>
             </div>
 
             <div className="modal-actions">
               <button type="submit" disabled={loading} className="submit-btn">
-                {loading ? 'Processing...' : 'Handover Asset'}
+                {loading ? 'Processing...' : 'Confirm Handover'}
               </button>
               <button type="button" onClick={onClose} className="cancel-btn">
                 Cancel

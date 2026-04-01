@@ -6,13 +6,17 @@ const AllocateAssetModal = ({ isOpen, onClose, asset }) => {
   const [formData, setFormData] = useState({
     serial_no: '',
     ip_address: '',
+    branch_id: '',
     department_id: '',
     allocated_by: '',
     allocated_date: new Date().toISOString().split('T')[0],
     return_date: '',
   });
+  
+  const [branches, setBranches] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingBranches, setLoadingBranches] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -21,30 +25,76 @@ const AllocateAssetModal = ({ isOpen, onClose, asset }) => {
 
   useEffect(() => {
     if (isOpen && asset) {
+      // Set form data with logged-in user's username
       setFormData({
-        ...formData,
         serial_no: asset.serial_no,
-        allocated_by: loggedInUser.username || '',
+        ip_address: '',
+        branch_id: '',
+        department_id: '',
+        allocated_by: loggedInUser.username || loggedInUser.name || 'Unknown User', // Auto-fill from login
+        allocated_date: new Date().toISOString().split('T')[0],
+        return_date: '',
       });
-      fetchDepartments();
+      fetchBranches();
     }
   }, [isOpen, asset]);
 
-  const fetchDepartments = async () => {
+  const fetchBranches = async () => {
+    setLoadingBranches(true);
     try {
-      const response = await fetch('http://localhost:5005/api/departments/get-departments');
+      console.log('Fetching branches...');
+      const response = await fetch('http://localhost:5005/api/departments/branches');
       const data = await response.json();
+      
+      if (response.ok) {
+        setBranches(data.data || []);
+        if (data.data && data.data.length === 0) {
+          setError('No branches found. Please contact administrator.');
+        }
+      } else {
+        setError(data.message || 'Failed to fetch branches');
+      }
+    } catch (err) {
+      console.error('Error fetching branches:', err);
+      setError('Network error: ' + err.message);
+    } finally {
+      setLoadingBranches(false);
+    }
+  };
+
+  const fetchDepartmentsByBranch = async (branchId) => {
+    if (!branchId) {
+      setDepartments([]);
+      return;
+    }
+    
+    try {
+      const response = await fetch(`http://localhost:5005/api/departments/branch/${branchId}`);
+      const data = await response.json();
+      
       if (response.ok) {
         setDepartments(data.data || []);
+        if (data.data && data.data.length === 0) {
+          setError('No departments found for this branch.');
+        }
+      } else {
+        setError(data.message || 'Failed to fetch departments');
       }
     } catch (err) {
       console.error('Error fetching departments:', err);
+      setError('Network error: ' + err.message);
     }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // When branch changes, reset department and fetch new departments
+    if (name === 'branch_id') {
+      setFormData((prev) => ({ ...prev, department_id: '' }));
+      fetchDepartmentsByBranch(value);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -52,6 +102,25 @@ const AllocateAssetModal = ({ isOpen, onClose, asset }) => {
     setLoading(true);
     setMessage('');
     setError('');
+
+    // Validation
+    if (!formData.branch_id) {
+      setError('Please select a branch');
+      setLoading(false);
+      return;
+    }
+    
+    if (!formData.department_id) {
+      setError('Please select a department');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.ip_address) {
+      setError('Please enter IP address');
+      setLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch('http://localhost:5005/api/assets/asset-allocation', {
@@ -93,14 +162,48 @@ const AllocateAssetModal = ({ isOpen, onClose, asset }) => {
 
           <form onSubmit={handleSubmit} className="modal-form">
             <div className="form-group">
-              <label>Serial Number *</label>
+              <label>Asset Serial Number *</label>
               <input
                 type="text"
-                name="serial_no"
-                value={formData.serial_no}
+                value={asset?.serial_no || ''}
                 readOnly
                 className="form-control read-only"
               />
+            </div>
+
+            <div className="form-group">
+              <label>Asset Type</label>
+              <input
+                type="text"
+                value={asset?.asset_type || ''}
+                readOnly
+                className="form-control read-only"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Branch *</label>
+              {loadingBranches ? (
+                <div className="loading-indicator">Loading branches...</div>
+              ) : (
+                <select
+                  name="branch_id"
+                  value={formData.branch_id}
+                  onChange={handleChange}
+                  required
+                  className="form-control"
+                >
+                  <option value="">-- Select Branch --</option>
+                  {branches.map((branch) => (
+                    <option key={branch.branch_id} value={branch.branch_id}>
+                      {branch.location}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {branches.length === 0 && !loadingBranches && (
+                <small className="error-text">No branches available. Please seed database.</small>
+              )}
             </div>
 
             <div className="form-group">
@@ -110,6 +213,7 @@ const AllocateAssetModal = ({ isOpen, onClose, asset }) => {
                 value={formData.department_id}
                 onChange={handleChange}
                 required
+                disabled={!formData.branch_id || loadingBranches}
                 className="form-control"
               >
                 <option value="">-- Select Department --</option>
@@ -119,6 +223,12 @@ const AllocateAssetModal = ({ isOpen, onClose, asset }) => {
                   </option>
                 ))}
               </select>
+              {!formData.branch_id && (
+                <small className="hint-text">Please select a branch first</small>
+              )}
+              {formData.branch_id && departments.length === 0 && (
+                <small className="error-text">No departments found for this branch</small>
+              )}
             </div>
 
             <div className="form-group">
@@ -143,6 +253,7 @@ const AllocateAssetModal = ({ isOpen, onClose, asset }) => {
                 readOnly
                 className="form-control read-only"
               />
+              <small className="hint-text">Auto-filled with logged-in user: {formData.allocated_by}</small>
             </div>
 
             <div className="form-row">
@@ -158,7 +269,7 @@ const AllocateAssetModal = ({ isOpen, onClose, asset }) => {
               </div>
 
               <div className="form-group">
-                <label>Return Date (Expected)</label>
+                <label>Expected Return Date</label>
                 <input
                   type="date"
                   name="return_date"

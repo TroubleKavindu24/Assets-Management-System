@@ -11,11 +11,14 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .list-header h2 {
   color: #333;
   margin: 0;
+  font-size: 1.5rem;
 }
 
 .refresh-btn {
@@ -26,6 +29,7 @@
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s ease;
+  font-size: 0.9rem;
 }
 
 .refresh-btn:hover {
@@ -35,15 +39,18 @@
 
 .table-responsive {
   overflow-x: auto;
+  margin-top: 1rem;
 }
 
 .asset-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 800px;
 }
 
 .asset-table thead {
   background: #f7f9fc;
+  border-bottom: 2px solid #e0e0e0;
 }
 
 .asset-table th {
@@ -51,16 +58,18 @@
   text-align: left;
   font-weight: 600;
   color: #555;
-  border-bottom: 2px solid #e0e0e0;
+  font-size: 0.9rem;
 }
 
 .asset-table td {
   padding: 1rem;
   border-bottom: 1px solid #f0f0f0;
+  color: #333;
 }
 
 .asset-table tbody tr:hover {
   background: #f9f9f9;
+  transition: background 0.2s ease;
 }
 
 .status-badge {
@@ -131,6 +140,7 @@
 .handover-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
 .loading, .error, .no-data {
@@ -141,4 +151,43 @@
 
 .error {
   color: #dc3545;
+  background: #f8d7da;
+  border-radius: 6px;
+  margin: 1rem 0;
+}
+
+.no-data {
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .asset-list-container {
+    padding: 1rem;
+  }
+
+  .list-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .refresh-btn {
+    width: 100%;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .allocate-btn,
+  .handover-btn {
+    width: 100%;
+  }
+
+  .asset-table th,
+  .asset-table td {
+    padding: 0.75rem;
+    font-size: 0.85rem;
+  }
 }

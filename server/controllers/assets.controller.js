@@ -321,50 +321,6 @@ exports.asset_handover = async (req, res) => {
   }
 };
 
-exports.getAssetDetailsBySerialNo = async (req, res) => {
-  try {
-    const { serial_no } = req.params;
-
-    if (!serial_no) {
-      return res.status(400).json({ message: "Serial number is required" });
-    }
-
-    const asset = await Asset.findOne({ where: { serial_no } });
-    if (!asset) {
-      return res.status(404).json({ message: "Asset not found" });
-    }
-
-    if (["AVAILABLE", "UNDER_REPAIR", "RETIRED"].includes(asset.status)) {
-      return res.status(200).json({
-        asset,
-        status: asset.status
-      });
-    }
-
-    if (asset.status === "ALLOCATED") {
-      const allocation = await AssetAllocation.findOne({
-        where: { asset_id: asset.asset_id },
-        order: [["allocated_date", "DESC"]]
-      });
-
-      return res.status(200).json({
-        asset,
-        status: asset.status,
-        allocation: allocation || null
-      });
-    }
-
-    return res.status(200).json({
-      asset,
-      status: asset.status
-    });
-
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: error.message });
-  }
-};
-
 exports.getAllocationHistoryBySerialNo = async (req, res) => {
   try {
     const { serial_no } = req.params;
@@ -393,6 +349,53 @@ exports.getAllocationHistoryBySerialNo = async (req, res) => {
       },
       total_allocations: allocations.length,
       allocations: allocations
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+// In assets.controller.js
+exports.getAssetDetailsBySerialNo = async (req, res) => {
+  try {
+    const { serial_no } = req.params;
+
+    if (!serial_no) {
+      return res.status(400).json({ message: "Serial number is required" });
+    }
+
+    const asset = await Asset.findOne({ where: { serial_no } });
+    if (!asset) {
+      return res.status(404).json({ message: "Asset not found" });
+    }
+
+    if (["AVAILABLE", "UNDER_REPAIR", "RETIRED"].includes(asset.status)) {
+      return res.status(200).json({
+        asset,
+        status: asset.status,
+        allocation: null
+      });
+    }
+
+    if (asset.status === "ALLOCATED") {
+      const allocation = await AssetAllocation.findOne({
+        where: { asset_id: asset.asset_id },
+        order: [["allocated_date", "DESC"]]
+      });
+
+      return res.status(200).json({
+        asset,
+        status: asset.status,
+        allocation: allocation || null
+      });
+    }
+
+    return res.status(200).json({
+      asset,
+      status: asset.status,
+      allocation: null
     });
 
   } catch (error) {
