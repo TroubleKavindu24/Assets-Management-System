@@ -209,13 +209,37 @@ exports.allocateAsset = async (req, res) => {
 exports.getAllAllocations = async (req, res) => {
   try {
     const allocations = await AssetAllocation.findAll({
-      order: [["allocation_id", "DESC"]]
+      include: [
+        {
+          model: Branch,
+          as: "branch",
+          attributes: ["branch_id", "location"]
+        },
+        {
+          model: Department,
+          as: "department",
+          attributes: ["department_id", "department_name"]
+        },
+        {
+          model: Asset,
+          as: "asset",
+          attributes: ["asset_id", "serial_no", "asset_type", "brand", "os"]
+        }
+      ],
+      order: [["allocated_date", "DESC"]]
     });
 
-    res.status(200).json(allocations);
-
+    return res.status(200).json({
+      success: true,
+      count: allocations.length,
+      data: allocations
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    return res.status(500).json({ 
+      error: error.message,
+      message: "Failed to fetch allocations"
+    });
   }
 };
 
