@@ -1,260 +1,186 @@
-import React, { useState, useContext, useEffect } from "react";
-import axios from "axios";
-import { AuthContext } from "../../context/AuthContext";
-import "./AllocateAssetForm.css";
+// src/components/AllocateAsset.jsx
+import React, { useState, useEffect } from 'react';
+import './AllocateAssetForm.css';
 
-const AllocateAssetForm = () => {
-  const { user } = useContext(AuthContext);
+const AllocateAsset = () => {
   const [formData, setFormData] = useState({
-    asset_type: "",
-    serial_no: "",
-    ip_address: "",
-    department_id: "",
-    allocated_by: "",
-    allocated_date: new Date().toISOString().split("T")[0],
-    return_date: "",
+    serial_no: '',
+    ip_address: '',
+    department_id: '',
+    allocated_by: '',
+    allocated_date: new Date().toISOString().split('T')[0],
+    return_date: '',
   });
 
   const [availableAssets, setAvailableAssets] = useState([]);
-  const [loadingAssets, setLoadingAssets] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
 
-  const assetTypes = ["Laptop", "Machine", "Printer", "Other"];
-  const departments = ["IT", "HR", "FINANCE", "OPERATIONS", "ADMIN"];
-
-  // Set allocated_by from logged-in user
   useEffect(() => {
-    if (user && user.user_name) {
-      setFormData((prev) => ({
-        ...prev,
-        allocated_by: user.user_name,
-      }));
-    }
-  }, [user]);
+    fetchAvailableAssets();
+  }, []);
 
-  // Handle input change
+  const fetchAvailableAssets = async () => {
+    try {
+      const response = await fetch('http://localhost:5005/api/assets/asset-available/Laptop');
+      const data = await response.json();
+      if (response.ok) {
+        setAvailableAssets(data.data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching assets:', err);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    // When asset_type changes → fetch available assets
-    if (name === "asset_type") {
-      fetchAvailableAssets(value);
-      setFormData((prev) => ({
-        ...prev,
-        asset_type: value,
-        serial_no: "" // reset serial_no
-      }));
-    }
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Fetch AVAILABLE assets by type
-  const fetchAvailableAssets = async (type) => {
-    if (!type) return;
-
-    try {
-      setLoadingAssets(true);
-      const res = await axios.get(
-        `http://localhost:5005/api/assets/asset-available/${type}`
-      );
-      setAvailableAssets(res.data.data);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to load available assets");
-    } finally {
-      setLoadingAssets(false);
-    }
-  };
-
-  // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setMessage("");
+    setMessage('');
+    setError('');
     setLoading(true);
 
-    if (
-      !formData.serial_no ||
-      !formData.ip_address ||
-      !formData.department_id ||
-      !formData.allocated_by
-    ) {
-      setError("Please fill all required fields");
-      setLoading(false);
-      return;
-    }
-
     try {
-      const res = await axios.post(
-        "http://localhost:5005/api/assets/asset-allocation",
-        formData
-      );
-
-      setMessage("Asset allocated successfully!");
-
-      // Reset form
-      setFormData({
-        asset_type: "",
-        serial_no: "",
-        ip_address: "",
-        department_id: "",
-        allocated_by: user?.user_name || "",
-        allocated_date: new Date().toISOString().split("T")[0],
-        return_date: "",
+      const response = await fetch('http://localhost:5005/api/assets/asset-allocation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
       });
 
-      setAvailableAssets([]);
+      const result = await response.json();
 
+      if (!response.ok) {
+        throw new Error(result.message || 'Allocation failed');
+      }
+
+      setMessage('✅ Asset allocated successfully!');
+      setFormData({
+        serial_no: '',
+        ip_address: '',
+        department_id: '',
+        allocated_by: '',
+        allocated_date: new Date().toISOString().split('T')[0],
+        return_date: '',
+      });
+      fetchAvailableAssets();
+      setTimeout(() => setMessage(''), 3000);
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || "Allocation failed");
+      setError(err.message);
+      setTimeout(() => setError(''), 3000);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="allocate-asset-container">
-      <h2>Allocate Asset</h2>
+    <div className="allocate-container">
+      <div className="form-header">
+        <h2>Allocate Asset</h2>
+        <p>Assign an asset to a department</p>
+      </div>
+
+      {message && <div className="success-message">{message}</div>}
+      {error && <div className="error-message">{error}</div>}
 
       <form onSubmit={handleSubmit} className="allocate-form">
-
-        {/* Asset Type */}
-        <div className="form-group">
-          <label>Asset Type *</label>
-          <select
-            name="asset_type"
-            value={formData.asset_type}
-            onChange={handleChange}
-            required
-          >
-            <option value="">-- Select Type --</option>
-            {assetTypes.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Serial No (Dynamic Dropdown) */}
-        <div className="form-group">
-          <label>Serial Number *</label>
-
-          {loadingAssets ? (
-            <p>Loading available assets...</p>
-          ) : (
-            <select
+        <div className="form-row">
+          <div className="form-group">
+            <label>Serial Number *</label>
+            <input
+              type="text"
               name="serial_no"
               value={formData.serial_no}
               onChange={handleChange}
               required
-              disabled={!availableAssets.length}
-            >
-              <option value="">
-                {availableAssets.length
-                  ? "-- Select Serial No --"
-                  : "No available assets"}
-              </option>
-
-              {availableAssets.map((asset) => (
-                <option key={asset.asset_id} value={asset.serial_no}>
-                  {asset.serial_no} ({asset.brand || "N/A"})
-                </option>
+              placeholder="Enter serial number"
+              className="form-control"
+              list="assets-list"
+            />
+            <datalist id="assets-list">
+              {availableAssets.map(asset => (
+                <option key={asset.serial_no} value={asset.serial_no} />
               ))}
-            </select>
-          )}
+            </datalist>
+          </div>
+
+          <div className="form-group">
+            <label>IP Address *</label>
+            <input
+              type="text"
+              name="ip_address"
+              value={formData.ip_address}
+              onChange={handleChange}
+              required
+              placeholder="e.g., 192.168.1.100"
+              className="form-control"
+            />
+          </div>
         </div>
 
-        {/* IP Address */}
-        <div className="form-group">
-          <label>IP Address *</label>
-          <input
-            type="text"
-            name="ip_address"
-            value={formData.ip_address}
-            onChange={handleChange}
-            required
-            placeholder="192.168.1.10"
-          />
+        <div className="form-row">
+          <div className="form-group">
+            <label>Department ID *</label>
+            <input
+              type="number"
+              name="department_id"
+              value={formData.department_id}
+              onChange={handleChange}
+              required
+              placeholder="Enter department ID"
+              className="form-control"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Allocated By *</label>
+            <input
+              type="text"
+              name="allocated_by"
+              value={formData.allocated_by}
+              onChange={handleChange}
+              required
+              placeholder="Name of person allocating"
+              className="form-control"
+            />
+          </div>
         </div>
 
-        {/* Department */}
-        <div className="form-group">
-          <label>Department *</label>
-          <select
-            name="department_id"
-            value={formData.department_id}
-            onChange={handleChange}
-            required
-          >
-            <option value="">-- Select Department --</option>
-            {departments.map((dept) => (
-              <option key={dept} value={dept}>
-                {dept}
-              </option>
-            ))}
-          </select>
+        <div className="form-row">
+          <div className="form-group">
+            <label>Allocated Date</label>
+            <input
+              type="date"
+              name="allocated_date"
+              value={formData.allocated_date}
+              onChange={handleChange}
+              className="form-control"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Return Date (Expected)</label>
+            <input
+              type="date"
+              name="return_date"
+              value={formData.return_date}
+              onChange={handleChange}
+              className="form-control"
+            />
+          </div>
         </div>
 
-        {/* Allocated By - Read Only from Logged-in User */}
-        <div className="form-group">
-          <label>Allocated By *</label>
-          <input
-            type="text"
-            name="allocated_by"
-            value={formData.allocated_by}
-            readOnly
-            disabled
-            className="readonly-field"
-            style={{
-              backgroundColor: "#f3f4f6",
-              cursor: "not-allowed",
-              border: "1px solid #d1d5db"
-            }}
-          />
-          <small style={{ color: "#6b7280", fontSize: "12px" }}>
-            Automatically set from logged-in user
-          </small>
+        <div className="form-actions">
+          <button type="submit" disabled={loading} className="submit-btn">
+            {loading ? 'Allocating...' : 'Allocate Asset'}
+          </button>
         </div>
-
-        {/* Allocation Date */}
-        <div className="form-group">
-          <label>Allocation Date</label>
-          <input
-            type="date"
-            name="allocated_date"
-            value={formData.allocated_date}
-            onChange={handleChange}
-          />
-        </div>
-
-        {/* Return Date */}
-        <div className="form-group">
-          <label>Return Date</label>
-          <input
-            type="date"
-            name="return_date"
-            value={formData.return_date}
-            onChange={handleChange}
-            min={formData.allocated_date}
-          />
-        </div>
-
-        {/* Submit */}
-        <button type="submit" disabled={loading}>
-          {loading ? "Allocating..." : "Allocate Asset"}
-        </button>
-
       </form>
     </div>
   );
 };
 
-export default AllocateAssetForm;
+export default AllocateAsset;

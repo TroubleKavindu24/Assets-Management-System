@@ -7,13 +7,8 @@ const User = sequelize.define("User", {
     primaryKey: true,
     autoIncrement: true,
   },
-  username: {
+  user_name: {
     type: DataTypes.STRING(50),
-    allowNull: false,
-    unique: true,
-  },
-  email: {
-    type: DataTypes.STRING(100),
     allowNull: false,
     unique: true,
   },
@@ -21,8 +16,9 @@ const User = sequelize.define("User", {
     type: DataTypes.STRING(255),
     allowNull: false,
   },
-  department_id: {
-    type: DataTypes.INTEGER,
+  department_name: {
+    type: DataTypes.ENUM("IT", "Finance", "Legal", "Treasury", "Gold Loan", "Fixed Deposit", "N/A"),
+    defaultValue: "N/A",
     allowNull: false,
   },
   role: {
