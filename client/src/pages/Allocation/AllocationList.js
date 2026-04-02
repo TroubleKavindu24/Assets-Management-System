@@ -199,10 +199,10 @@ const AllocationList = () => {
                 <th>Asset Type</th>
                 <th>Branch</th>
                 <th>Department</th>
-                <th>Allocated By</th>
+                {/* <th>Allocated By</th>
                 <th>Allocated Date</th>
                 <th>Handover Date</th>
-                <th>Status</th>
+                <th>Status</th> */}
                 <th>Action</th>
               </tr>
             </thead>
@@ -222,26 +222,26 @@ const AllocationList = () => {
                   </td>
                   <td>
                     <span className="branch-info">
-                      🏢 {allocation.branch?.location || '-'}
+                       {allocation.branch?.location || '-'}
                     </span>
                   </td>
                   <td>
                     <span className="dept-info">
-                      📍 {allocation.department?.department_name || '-'}
+                       {allocation.department?.department_name || '-'}
                     </span>
                   </td>
-                  <td>{allocation.allocated_by}</td>
-                  <td>{formatDate(allocation.allocated_date)}</td>
-                  <td>
+                  {/* <td>{allocation.allocated_by}</td> */}
+                  {/* <td>{formatDate(allocation.allocated_date)}</td> */}
+                  {/* <td>
                     {allocation.return_date ? formatDate(allocation.return_date) : '-'}
-                  </td>
-                  <td>
+                  </td> */}
+                  {/* <td>
                     {allocation.allocation_status === 'ACTIVE' ? (
                       <span className="badge-active">Active</span>
                     ) : (
                       <span className="badge-completed">Completed</span>
                     )}
-                  </td>
+                  </td> */}
                   <td className="action-cell">
                     <div className="action-buttons">
                       <button
@@ -249,7 +249,7 @@ const AllocationList = () => {
                         onClick={() => handleMoreClick(allocation)}
                         title="View details"
                       >
-                        📋 More
+                        More
                       </button>
                       {allocation.allocation_status === 'ACTIVE' ? (
                         <button
@@ -259,9 +259,9 @@ const AllocationList = () => {
                           title="Handover this asset"
                         >
                           {handoverLoading === allocation.allocation_id ? (
-                            <>⏳ Processing...</>
+                            <>Processing...</>
                           ) : (
-                            <>🔄 Handover</>
+                            <>Handover</>
                           )}
                         </button>
                       ) : (
@@ -351,11 +351,11 @@ const AllocationList = () => {
                     handleHandover(selectedAllocation);
                   }}
                 >
-                  🔄 Handover Asset
+                  Handover Asset
                 </button>
               ) : (
                 <button className="completed-modal-btn" disabled>
-                  ✓ Already Handed Over
+                  Already Handed Over
                 </button>
               )}
               <button className="close-modal-btn" onClick={() => setShowDetailsModal(false)}>

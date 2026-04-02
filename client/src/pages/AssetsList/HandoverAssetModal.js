@@ -20,7 +20,6 @@ const HandoverAssetModal = ({ isOpen, onClose, asset }) => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  // Get logged-in user from localStorage
   const loggedInUser = JSON.parse(localStorage.getItem('user') || '{}');
 
   useEffect(() => {
@@ -45,11 +44,9 @@ const HandoverAssetModal = ({ isOpen, onClose, asset }) => {
       
       if (response.ok && data.allocation) {
         setCurrentAllocation(data.allocation);
-        // Pre-select the branch and department from current allocation
         if (data.allocation.branch_id) {
           setSelectedBranch(data.allocation.branch_id.toString());
           fetchDepartmentsByBranch(data.allocation.branch_id);
-          // Wait for departments to load then set department
           setTimeout(() => {
             setFormData(prev => ({
               ...prev,
@@ -133,7 +130,7 @@ const HandoverAssetModal = ({ isOpen, onClose, asset }) => {
         throw new Error(result.message || 'Handover failed');
       }
 
-      setMessage('✅ Asset handed over successfully!');
+      setMessage('Asset handed over successfully');
       setTimeout(() => {
         onClose();
       }, 1500);
@@ -146,13 +143,11 @@ const HandoverAssetModal = ({ isOpen, onClose, asset }) => {
 
   if (!isOpen) return null;
 
-  // Get branch name from ID
   const getBranchName = (branchId) => {
     const branch = branches.find(b => b.branch_id === parseInt(branchId));
     return branch ? branch.location : 'Unknown Branch';
   };
 
-  // Get department name from ID
   const getDepartmentName = (deptId) => {
     const dept = departments.find(d => d.department_id === parseInt(deptId));
     return dept ? dept.department_name : 'Unknown Department';
@@ -167,120 +162,133 @@ const HandoverAssetModal = ({ isOpen, onClose, asset }) => {
         </div>
 
         <div className="modal-body">
-          {message && <div className="success-message">{message}</div>}
-          {error && <div className="error-message">{error}</div>}
+          {message && <div className="message success">{message}</div>}
+          {error && <div className="message error">{error}</div>}
 
-          <form onSubmit={handleSubmit} className="modal-form">
-            {/* Asset Information Section */}
-            <div className="info-section">
-              <h3>Asset Information</h3>
-              <div className="info-grid">
-                <div className="info-item">
-                  <label>Serial Number:</label>
-                  <span><strong>{asset?.serial_no}</strong></span>
-                </div>
-                <div className="info-item">
-                  <label>Asset Type:</label>
-                  <span>{asset?.asset_type}</span>
-                </div>
-                <div className="info-item">
-                  <label>Brand:</label>
-                  <span>{asset?.brand || 'N/A'}</span>
-                </div>
-                <div className="info-item">
-                  <label>Status:</label>
-                  <span className={`status-badge ${asset?.status === 'ALLOCATED' ? 'status-allocated' : ''}`}>
-                    {asset?.status}
-                  </span>
-                </div>
-              </div>
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label>Asset Serial Number</label>
+              <input
+                type="text"
+                value={asset?.serial_no || ''}
+                readOnly
+                className="form-control read-only"
+              />
             </div>
 
-            {/* Current Allocation Section */}
+            <div className="form-group">
+              <label>Asset Type</label>
+              <input
+                type="text"
+                value={asset?.asset_type || ''}
+                readOnly
+                className="form-control read-only"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Brand</label>
+              <input
+                type="text"
+                value={asset?.brand || 'N/A'}
+                readOnly
+                className="form-control read-only"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Current Status</label>
+              <input
+                type="text"
+                value={asset?.status || 'N/A'}
+                readOnly
+                className="form-control read-only"
+              />
+            </div>
+
             {loadingAllocation ? (
-              <div className="loading-section">Loading current allocation...</div>
+              <div className="loading-text">Loading allocation details...</div>
             ) : currentAllocation ? (
-              <div className="info-section allocation-info">
-                <h3>Current Allocation Details</h3>
-                <div className="info-grid">
-                  <div className="info-item">
-                    <label>Branch:</label>
-                    <span className="highlight">
-                      🏢 {getBranchName(currentAllocation.branch_id)}
-                    </span>
-                  </div>
-                  <div className="info-item">
-                    <label>Department:</label>
-                    <span className="highlight">
-                      📍 {getDepartmentName(currentAllocation.department_id)}
-                    </span>
-                  </div>
-                  <div className="info-item">
-                    <label>IP Address:</label>
-                    <span>{currentAllocation.ip_address || 'N/A'}</span>
-                  </div>
-                  <div className="info-item">
-                    <label>Allocated By:</label>
-                    <span>{currentAllocation.allocated_by}</span>
-                  </div>
-                  <div className="info-item">
-                    <label>Allocated Date:</label>
-                    <span>{currentAllocation.allocated_date ? new Date(currentAllocation.allocated_date).toLocaleDateString() : 'N/A'}</span>
-                  </div>
-                  {currentAllocation.return_date && (
-                    <div className="info-item">
-                      <label>Expected Return:</label>
-                      <span>{new Date(currentAllocation.return_date).toLocaleDateString()}</span>
-                    </div>
-                  )}
+              <>
+                <div className="form-group">
+                  <label>Current Branch</label>
+                  <input
+                    type="text"
+                    value={getBranchName(currentAllocation.branch_id)}
+                    readOnly
+                    className="form-control read-only"
+                  />
                 </div>
-              </div>
+
+                <div className="form-group">
+                  <label>Current Department</label>
+                  <input
+                    type="text"
+                    value={getDepartmentName(currentAllocation.department_id)}
+                    readOnly
+                    className="form-control read-only"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>IP Address</label>
+                  <input
+                    type="text"
+                    value={currentAllocation.ip_address || 'N/A'}
+                    readOnly
+                    className="form-control read-only"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Allocated By</label>
+                  <input
+                    type="text"
+                    value={currentAllocation.allocated_by}
+                    readOnly
+                    className="form-control read-only"
+                  />
+                </div>
+              </>
             ) : (
-              <div className="warning-message">
-                ⚠️ No active allocation found for this asset.
-              </div>
+              <div className="warning-text">No active allocation found</div>
             )}
 
-            {/* Handover Form Section */}
-            <div className="info-section">
-              <h3>Handover Details</h3>
-              <div className="form-group">
-                <label>Handover By *</label>
-                <input
-                  type="text"
-                  name="requested_by"
-                  value={formData.requested_by}
-                  readOnly
-                  className="form-control read-only"
-                />
-                <small className="hint-text">Auto-filled with logged-in user: {formData.requested_by}</small>
-              </div>
-
-              <div className="form-group">
-                <label>Condition Note</label>
-                <textarea
-                  name="condition_note"
-                  value={formData.condition_note}
-                  onChange={handleChange}
-                  placeholder="Describe the condition of the asset (e.g., Good, Minor scratches, Needs repair)"
-                  rows="3"
-                  className="form-control"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Handover Date</label>
-                <input
-                  type="date"
-                  name="handover_date"
-                  value={formData.handover_date}
-                  onChange={handleChange}
-                  className="form-control"
-                />
-              </div>
+            <div className="form-group">
+              <label>Handover By *</label>
+              <input
+                type="text"
+                name="requested_by"
+                value={formData.requested_by}
+                readOnly
+                className="form-control read-only"
+              />
             </div>
 
-            <div className="modal-actions">
+            <div className="form-group">
+              <label>Condition Note</label>
+              <textarea
+                name="condition_note"
+                value={formData.condition_note}
+                onChange={handleChange}
+                placeholder="Describe the condition of the asset"
+                rows="3"
+                className="form-control"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Handover Date</label>
+              <input
+                type="date"
+                name="handover_date"
+                value={formData.handover_date}
+                onChange={handleChange}
+                className="form-control"
+              />
+            </div>
+
+            <div className="form-actions">
               <button type="submit" disabled={loading} className="submit-btn">
                 {loading ? 'Processing...' : 'Confirm Handover'}
               </button>

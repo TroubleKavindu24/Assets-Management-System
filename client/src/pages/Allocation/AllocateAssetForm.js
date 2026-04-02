@@ -159,7 +159,7 @@ const AllocateAsset = () => {
   return (
     <div className="allocate-container">
       <div className="form-header">
-        <h2>Allocate Asset</h2>
+        <h2>Allocate Assets</h2>
         <p>Manually assign an asset to a branch and department</p>
       </div>
 
@@ -306,7 +306,7 @@ const AllocateAsset = () => {
         {/* Available Assets Summary */}
         {availableAssets.length > 0 && (
           <div className="info-box">
-            <h4>📊 Available Assets Summary</h4>
+            <h4>Available Assets Summary</h4>
             <div className="summary-stats">
               <div className="stat">
                 <span>Total Available:</span>

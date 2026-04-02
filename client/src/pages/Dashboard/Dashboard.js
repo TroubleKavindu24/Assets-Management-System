@@ -3,6 +3,11 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { 
+  FaBoxes, FaUserCheck, FaCheckCircle, FaExchangeAlt,
+  FaLaptop, FaPrint, FaMicrochip, FaBox,
+  FaPlus, FaShare, FaList, FaChartLine
+} from 'react-icons/fa';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -156,28 +161,28 @@ const Dashboard = () => {
       {/* Summary Cards */}
       <div style={styles.summaryGrid}>
         <div style={styles.summaryCard}>
-          <div style={styles.summaryIcon}>📊</div>
+          <FaBoxes style={styles.summaryIcon} />
           <div style={styles.summaryContent}>
             <div style={styles.summaryNumber}>{stats.totalAssets}</div>
             <div style={styles.summaryLabel}>Total Assets</div>
           </div>
         </div>
         <div style={styles.summaryCard}>
-          <div style={styles.summaryIcon}>🟡</div>
+          <FaUserCheck style={styles.summaryIcon} />
           <div style={styles.summaryContent}>
             <div style={styles.summaryNumber}>{stats.totalAllocated}</div>
             <div style={styles.summaryLabel}>Allocated Assets</div>
           </div>
         </div>
         <div style={styles.summaryCard}>
-          <div style={styles.summaryIcon}>🟢</div>
+          <FaCheckCircle style={styles.summaryIcon} />
           <div style={styles.summaryContent}>
             <div style={styles.summaryNumber}>{stats.totalAvailable}</div>
             <div style={styles.summaryLabel}>Available Assets</div>
           </div>
         </div>
         <div style={styles.summaryCard}>
-          <div style={styles.summaryIcon}>🔄</div>
+          <FaExchangeAlt style={styles.summaryIcon} />
           <div style={styles.summaryContent}>
             <div style={styles.summaryNumber}>{stats.totalHandover}</div>
             <div style={styles.summaryLabel}>Handover Assets</div>
@@ -219,22 +224,22 @@ const Dashboard = () => {
           <h2 style={styles.sectionTitle}>Total Assets</h2>
           <div style={styles.statsGrid}>
             <div style={styles.statCard}>
-              <div style={styles.statIcon}>💻</div>
+              <FaLaptop style={styles.statIcon} />
               <div style={styles.statNumber}>{stats.totalLaptops}</div>
               <div style={styles.statLabel}>Laptops</div>
             </div>
             <div style={styles.statCard}>
-              <div style={styles.statIcon}>🖨️</div>
+              <FaPrint style={styles.statIcon} />
               <div style={styles.statNumber}>{stats.totalPrinters}</div>
               <div style={styles.statLabel}>Printers</div>
             </div>
             <div style={styles.statCard}>
-              <div style={styles.statIcon}>⚙️</div>
+              <FaMicrochip style={styles.statIcon} />
               <div style={styles.statNumber}>{stats.totalMachines}</div>
               <div style={styles.statLabel}>Machines</div>
             </div>
             <div style={styles.statCard}>
-              <div style={styles.statIcon}>📦</div>
+              <FaBox style={styles.statIcon} />
               <div style={styles.statNumber}>{stats.totalOther}</div>
               <div style={styles.statLabel}>Others</div>
             </div>
@@ -247,7 +252,7 @@ const Dashboard = () => {
         {/* Allocated Section */}
         <div style={styles.statusCard}>
           <div style={{...styles.statusHeader, backgroundColor: '#fef3c7'}}>
-            <span style={styles.statusIcon}>🟡</span>
+            <FaUserCheck style={styles.statusIcon} />
             <h3 style={styles.statusTitle}>Allocated Assets</h3>
           </div>
           <div style={styles.statusContent}>
@@ -277,7 +282,7 @@ const Dashboard = () => {
         {/* Available Section */}
         <div style={styles.statusCard}>
           <div style={{...styles.statusHeader, backgroundColor: '#d1fae5'}}>
-            <span style={styles.statusIcon}>🟢</span>
+            <FaCheckCircle style={styles.statusIcon} />
             <h3 style={styles.statusTitle}>Available Assets</h3>
           </div>
           <div style={styles.statusContent}>
@@ -307,7 +312,7 @@ const Dashboard = () => {
         {/* Handover Section */}
         <div style={styles.statusCard}>
           <div style={{...styles.statusHeader, backgroundColor: '#e0e7ff'}}>
-            <span style={styles.statusIcon}>🔄</span>
+            <FaExchangeAlt style={styles.statusIcon} />
             <h3 style={styles.statusTitle}>Handover Assets</h3>
           </div>
           <div style={styles.statusContent}>
@@ -340,16 +345,16 @@ const Dashboard = () => {
         <h2 style={styles.sectionTitle}>Quick Actions</h2>
         <div style={styles.actionButtons}>
           <button style={styles.actionButton} onClick={() => navigate("/add-asset")}>
-            ➕ Add New Asset
+            <FaPlus style={{ marginRight: '8px' }} /> Add New Asset
           </button>
           <button style={styles.actionButton} onClick={() => navigate("/allocate-asset")}>
-            📤 Allocate Asset
+            <FaShare style={{ marginRight: '8px' }} /> Allocate Asset
           </button>
           <button style={styles.actionButton} onClick={() => navigate("/assets-list")}>
-            📋 View All Assets
+            <FaList style={{ marginRight: '8px' }} /> View All Assets
           </button>
           <button style={styles.actionButton} onClick={() => navigate("/allocations")}>
-            📊 View Allocations
+            <FaChartLine style={{ marginRight: '8px' }} /> View Allocations
           </button>
         </div>
       </div>
@@ -408,13 +413,10 @@ const styles = {
     boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
     transition: "transform 0.2s, box-shadow 0.2s",
     cursor: "pointer",
-    ":hover": {
-      transform: "translateY(-2px)",
-      boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-    },
   },
   summaryIcon: {
     fontSize: "40px",
+    color: "#6b7280", // neutral gray
   },
   summaryContent: {
     flex: 1,
@@ -470,12 +472,10 @@ const styles = {
     borderRadius: "12px",
     transition: "transform 0.2s",
     cursor: "pointer",
-    ":hover": {
-      transform: "translateY(-2px)",
-    },
   },
   statIcon: {
     fontSize: "32px",
+    color: "#6b7280",
     marginBottom: "8px",
   },
   statNumber: {
@@ -509,6 +509,7 @@ const styles = {
   },
   statusIcon: {
     fontSize: "20px",
+    color: "#374151",
   },
   statusTitle: {
     fontSize: "16px",
@@ -560,11 +561,8 @@ const styles = {
     fontWeight: "500",
     cursor: "pointer",
     transition: "all 0.2s",
-    ":hover": {
-      backgroundColor: "#2563eb",
-      transform: "translateY(-1px)",
-      boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-    },
+    display: "inline-flex",
+    alignItems: "center",
   },
   loadingContainer: {
     display: "flex",

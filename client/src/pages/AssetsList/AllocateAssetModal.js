@@ -20,18 +20,16 @@ const AllocateAssetModal = ({ isOpen, onClose, asset }) => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  // Get logged-in user from localStorage
   const loggedInUser = JSON.parse(localStorage.getItem('user') || '{}');
 
   useEffect(() => {
     if (isOpen && asset) {
-      // Set form data with logged-in user's username
       setFormData({
         serial_no: asset.serial_no,
         ip_address: '',
         branch_id: '',
         department_id: '',
-        allocated_by: loggedInUser.username || loggedInUser.name || 'Unknown User', // Auto-fill from login
+        allocated_by: loggedInUser.username || loggedInUser.name || 'Unknown User',
         allocated_date: new Date().toISOString().split('T')[0],
         return_date: '',
       });
@@ -42,7 +40,6 @@ const AllocateAssetModal = ({ isOpen, onClose, asset }) => {
   const fetchBranches = async () => {
     setLoadingBranches(true);
     try {
-      console.log('Fetching branches...');
       const response = await fetch('http://localhost:5005/api/departments/branches');
       const data = await response.json();
       
@@ -90,7 +87,6 @@ const AllocateAssetModal = ({ isOpen, onClose, asset }) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     
-    // When branch changes, reset department and fetch new departments
     if (name === 'branch_id') {
       setFormData((prev) => ({ ...prev, department_id: '' }));
       fetchDepartmentsByBranch(value);
@@ -103,7 +99,6 @@ const AllocateAssetModal = ({ isOpen, onClose, asset }) => {
     setMessage('');
     setError('');
 
-    // Validation
     if (!formData.branch_id) {
       setError('Please select a branch');
       setLoading(false);
@@ -135,7 +130,7 @@ const AllocateAssetModal = ({ isOpen, onClose, asset }) => {
         throw new Error(result.message || 'Allocation failed');
       }
 
-      setMessage('✅ Asset allocated successfully!');
+      setMessage('Asset allocated successfully!');
       setTimeout(() => {
         onClose();
       }, 1500);
@@ -157,103 +152,109 @@ const AllocateAssetModal = ({ isOpen, onClose, asset }) => {
         </div>
 
         <div className="modal-body">
-          {message && <div className="success-message">{message}</div>}
-          {error && <div className="error-message">{error}</div>}
+          {message && <div className="message success">{message}</div>}
+          {error && <div className="message error">{error}</div>}
 
           <form onSubmit={handleSubmit} className="modal-form">
-            <div className="form-group">
-              <label>Asset Serial Number *</label>
-              <input
-                type="text"
-                value={asset?.serial_no || ''}
-                readOnly
-                className="form-control read-only"
-              />
+            <div className="form-row">
+              <div className="form-group">
+                <label>Asset Serial Number *</label>
+                <input
+                  type="text"
+                  value={asset?.serial_no || ''}
+                  readOnly
+                  className="form-control read-only"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Asset Type</label>
+                <input
+                  type="text"
+                  value={asset?.asset_type || ''}
+                  readOnly
+                  className="form-control read-only"
+                />
+              </div>
             </div>
 
-            <div className="form-group">
-              <label>Asset Type</label>
-              <input
-                type="text"
-                value={asset?.asset_type || ''}
-                readOnly
-                className="form-control read-only"
-              />
-            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Branch *</label>
+                {loadingBranches ? (
+                  <div className="loading-indicator">Loading branches...</div>
+                ) : (
+                  <select
+                    name="branch_id"
+                    value={formData.branch_id}
+                    onChange={handleChange}
+                    required
+                    className="form-control"
+                  >
+                    <option value="">Select Branch</option>
+                    {branches.map((branch) => (
+                      <option key={branch.branch_id} value={branch.branch_id}>
+                        {branch.location}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {branches.length === 0 && !loadingBranches && (
+                  <small className="error-text">No branches available</small>
+                )}
+              </div>
 
-            <div className="form-group">
-              <label>Branch *</label>
-              {loadingBranches ? (
-                <div className="loading-indicator">Loading branches...</div>
-              ) : (
+              <div className="form-group">
+                <label>Department *</label>
                 <select
-                  name="branch_id"
-                  value={formData.branch_id}
+                  name="department_id"
+                  value={formData.department_id}
                   onChange={handleChange}
                   required
+                  disabled={!formData.branch_id || loadingBranches}
                   className="form-control"
                 >
-                  <option value="">-- Select Branch --</option>
-                  {branches.map((branch) => (
-                    <option key={branch.branch_id} value={branch.branch_id}>
-                      {branch.location}
+                  <option value="">Select Department</option>
+                  {departments.map((dept) => (
+                    <option key={dept.department_id} value={dept.department_id}>
+                      {dept.department_name}
                     </option>
                   ))}
                 </select>
-              )}
-              {branches.length === 0 && !loadingBranches && (
-                <small className="error-text">No branches available. Please seed database.</small>
-              )}
+                {!formData.branch_id && (
+                  <small className="hint-text">Select a branch first</small>
+                )}
+                {formData.branch_id && departments.length === 0 && (
+                  <small className="error-text">No departments found</small>
+                )}
+              </div>
             </div>
 
-            <div className="form-group">
-              <label>Department *</label>
-              <select
-                name="department_id"
-                value={formData.department_id}
-                onChange={handleChange}
-                required
-                disabled={!formData.branch_id || loadingBranches}
-                className="form-control"
-              >
-                <option value="">-- Select Department --</option>
-                {departments.map((dept) => (
-                  <option key={dept.department_id} value={dept.department_id}>
-                    {dept.department_name}
-                  </option>
-                ))}
-              </select>
-              {!formData.branch_id && (
-                <small className="hint-text">Please select a branch first</small>
-              )}
-              {formData.branch_id && departments.length === 0 && (
-                <small className="error-text">No departments found for this branch</small>
-              )}
-            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>IP Address *</label>
+                <input
+                  type="text"
+                  name="ip_address"
+                  value={formData.ip_address}
+                  onChange={handleChange}
+                  required
+                  placeholder="e.g., 192.168.1.100"
+                  className="form-control"
+                />
+              </div>
 
-            <div className="form-group">
-              <label>IP Address *</label>
-              <input
-                type="text"
-                name="ip_address"
-                value={formData.ip_address}
-                onChange={handleChange}
-                required
-                placeholder="e.g., 192.168.1.100"
-                className="form-control"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Allocated By *</label>
-              <input
-                type="text"
-                name="allocated_by"
-                value={formData.allocated_by}
-                readOnly
-                className="form-control read-only"
-              />
-              <small className="hint-text">Auto-filled with logged-in user: {formData.allocated_by}</small>
+              <div className="form-group">
+                <label>Allocated By *</label>
+                <input
+                  type="text"
+                  name="allocated_by"
+                  value={formData.allocated_by}
+                  readOnly
+                  className="form-control read-only"
+                />
+                <small className="hint-text">Auto-filled: {formData.allocated_by}</small>
+              </div>
             </div>
 
             <div className="form-row">
@@ -280,7 +281,7 @@ const AllocateAssetModal = ({ isOpen, onClose, asset }) => {
               </div>
             </div>
 
-            <div className="modal-actions">
+            <div className="form-actions">
               <button type="submit" disabled={loading} className="submit-btn">
                 {loading ? 'Allocating...' : 'Allocate Asset'}
               </button>

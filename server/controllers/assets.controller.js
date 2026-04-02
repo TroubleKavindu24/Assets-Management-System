@@ -3,7 +3,7 @@ const AssetAllocation = require("../models/AssetAllocation.js");
 const HandoverRequest = require("../models/HandoverRequest.js");
 const Branch = require("../models/Branch.js");
 const Department = require("../models/Department.js");
-const User = require("../models/User.js");
+const DisposedAsset = require("../models/DisposedAsset.js");
 
 exports.add = async (req, res) => {
   try {
@@ -504,6 +504,120 @@ exports.getAllocatedAssets = async (req, res) => {
     console.error(error);
     return res.status(500).json({
       message: "Failed to fetch allocated assets",
+      error: error.message
+    });
+  }
+};
+
+// controllers/assets.controller.js - Add this function
+
+exports.disposeAsset = async (req, res) => {
+  try {
+    const {
+      asset_id,
+      serial_no,
+      disposed_location,
+      disposed_reason
+    } = req.body;
+
+    // Validation
+    if (!asset_id || !serial_no || !disposed_location) {
+      return res.status(400).json({
+        message: "Missing required fields: asset_id, serial_no, disposed_location"
+      });
+    }
+
+    // Validate location
+    const validLocations = ["Boralla", "Location2", "Location3"];
+    if (!validLocations.includes(disposed_location)) {
+      return res.status(400).json({
+        message: "Invalid disposal location. Allowed: Boralla, Location2, Location3"
+      });
+    }
+
+    // Find the asset
+    const asset = await Asset.findOne({
+      where: { asset_id, serial_no }
+    });
+
+    if (!asset) {
+      return res.status(404).json({ message: "Asset not found" });
+    }
+
+    // Check if already disposed
+    if (asset.status === "RETIRED") {
+      return res.status(400).json({ message: "Asset has already been disposed" });
+    }
+
+    // Get disposed_by from request or default
+    const disposed_by = req.body.disposed_by || "System Admin";
+
+    // Create disposed asset record
+    const disposedAsset = await DisposedAsset.create({
+      asset_id: asset.asset_id,
+      serial_no: asset.serial_no,
+      asset_type: asset.asset_type,
+      brand: asset.brand,
+      os: asset.os,
+      purchase_date: asset.purchase_date,
+      disposed_location,
+      disposed_by,
+      disposed_date: new Date(),
+      disposed_reason: disposed_reason || null
+    });
+
+    // If asset was allocated, update allocation with return date
+    if (asset.status === "ALLOCATED") {
+      const allocation = await AssetAllocation.findOne({
+        where: {
+          asset_id: asset.asset_id,
+          return_date: null
+        }
+      });
+
+      if (allocation) {
+        allocation.return_date = new Date();
+        await allocation.save();
+      }
+    }
+
+    // Update asset status to RETIRED
+    asset.status = "RETIRED";
+    await asset.save();
+
+    return res.status(200).json({
+      message: "Asset disposed successfully",
+      data: {
+        disposed_asset: disposedAsset,
+        asset_status: asset.status
+      }
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Get all disposed assets
+exports.getDisposedAssets = async (req, res) => {
+  try {
+    const disposedAssets = await DisposedAsset.findAll({
+      order: [["disposed_date", "DESC"]]
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: disposedAssets.length,
+      data: disposedAssets
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Failed to fetch disposed assets",
       error: error.message
     });
   }
