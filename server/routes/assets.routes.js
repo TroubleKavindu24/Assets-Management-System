@@ -22,5 +22,9 @@ router.get("/serial/:serial_no/history", assetController.getAllocationHistoryByS
 
 router.get("/allocated-assets", assetController.getAllocatedAssets);
 
+// Dispose routes
+router.post("/asset-dispose", assetController.disposeAsset);
+router.get("/disposed-assets", assetController.getDisposedAssets);
+
 
 module.exports = router;

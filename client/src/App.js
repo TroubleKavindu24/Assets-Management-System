@@ -19,6 +19,8 @@ import LoginPage from "./pages/Auth/LoginPage";
 import RegisterPage from "./pages/Auth/RegisterPage";
 import PermissionManagement from "./pages/PermissionManagement/PermissionManagement";
 
+import DisposePage from "./pages/Dispose/DisposedAssets"
+
 const AppContent = () => {
   const { loading } = useContext(AuthContext);
 
@@ -68,6 +70,14 @@ const AppContent = () => {
             element={
               <ProtectedRoute>
                 <AllocateList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dispose-list"
+            element={
+              <ProtectedRoute>
+                <DisposePage />
               </ProtectedRoute>
             }
           />

@@ -21,12 +21,12 @@ const NavBar = () => {
   // Toggle dropdowns
   const toggleAssetsDropdown = () => {
     setIsAssetsOpen(!isAssetsOpen);
-    setIsManageOpen(false); // Close other dropdown
+    setIsManageOpen(false);
   };
 
   const toggleManageDropdown = () => {
     setIsManageOpen(!isManageOpen);
-    setIsAssetsOpen(false); // Close other dropdown
+    setIsAssetsOpen(false);
   };
 
   return (
@@ -66,19 +66,22 @@ const NavBar = () => {
               {isAssetsOpen && (
                 <div style={styles.dropdownContent}>
                   <Link to="/assetForm" style={styles.dropdownLink}>
-                    Add
+                    Add Asset
                   </Link>
                   <Link to="/allocate-form" style={styles.dropdownLink}>
-                    Allocate
+                    Allocate Asset
                   </Link>
                   <Link to="/req-asset" style={styles.dropdownLink}>
-                    Request
+                    Request Asset
                   </Link>
                   <Link to="/allocate-list" style={styles.dropdownLink}>
                     Allocation List
                   </Link>
                   <Link to="/assets-list" style={styles.dropdownLink}>
                     Asset List
+                  </Link>
+                  <Link to="/dispose-list" style={styles.dropdownLink}>
+                    Disposed Assets
                   </Link>
                 </div>
               )}
@@ -264,14 +267,14 @@ const styles = {
     borderRadius: "4px",
     cursor: "pointer",
     fontSize: "0.85rem",
-    transition: "background-color 0.3s",
+    transition: "backgroundColor 0.3s",
     ":hover": {
       backgroundColor: "#c0392b",
     },
   },
 };
 
-// Add CSS animation keyframes (you can add this to your global CSS file)
+// Add CSS animation keyframes (add this to your global CSS file)
 const globalStyles = `
 @keyframes fadeIn {
   from {
@@ -284,7 +287,7 @@ const globalStyles = `
   }
 }
 
-/* Optional: Add responsive design for mobile */
+/* Responsive design for mobile */
 @media (max-width: 768px) {
   .nav-links {
     gap: 0.8rem;

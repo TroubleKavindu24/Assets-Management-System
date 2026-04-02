@@ -2,11 +2,11 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { 
   FaBoxes, FaUserCheck, FaCheckCircle, FaExchangeAlt,
-  FaLaptop, FaPrint, FaMicrochip, FaBox,
-  FaPlus, FaShare, FaList, FaChartLine
+  FaLaptop, FaPrint, FaMicrochip, FaBox, FaTrash,
+  FaPlus, FaShare, FaList, FaChartLine, FaEye, FaHome
 } from 'react-icons/fa';
 
 const Dashboard = () => {
@@ -38,6 +38,18 @@ const Dashboard = () => {
     handoverMachines: 0,
     handoverOther: 0,
     totalHandover: 0,
+    
+    // Disposed assets
+    disposedLaptops: 0,
+    disposedPrinters: 0,
+    disposedMachines: 0,
+    disposedOther: 0,
+    totalDisposed: 0,
+    
+    // Disposed by location
+    disposedBoralla: 0,
+    disposedLocation2: 0,
+    disposedLocation3: 0,
   });
   
   const [loading, setLoading] = useState(true);
@@ -61,19 +73,19 @@ const Dashboard = () => {
           assets = [];
         }
         
-        // Fetch all allocations
-        const allocationsRes = await axios.get("http://localhost:5005/api/assets/getAllAllocations");
-        let allocations = [];
+        // Fetch disposed assets
+        const disposedRes = await axios.get("http://localhost:5005/api/assets/disposed-assets");
+        let disposedAssets = [];
         
-        if (Array.isArray(allocationsRes.data)) {
-          allocations = allocationsRes.data;
-        } else if (allocationsRes.data.data && Array.isArray(allocationsRes.data.data)) {
-          allocations = allocationsRes.data.data;
+        if (disposedRes.data.success && Array.isArray(disposedRes.data.data)) {
+          disposedAssets = disposedRes.data.data;
+        } else if (Array.isArray(disposedRes.data)) {
+          disposedAssets = disposedRes.data;
         } else {
-          allocations = [];
+          disposedAssets = [];
         }
         
-        // Calculate statistics
+        // Calculate statistics for active assets
         const totalLaptops = assets.filter(a => a.asset_type === "Laptop").length;
         const totalPrinters = assets.filter(a => a.asset_type === "Printer").length;
         const totalMachines = assets.filter(a => a.asset_type === "Machine").length;
@@ -98,11 +110,25 @@ const Dashboard = () => {
         const handoverOther = assets.filter(a => a.asset_type === "Other" && a.status === "AVAILABLE").length;
         const totalHandover = handoverLaptops + handoverPrinters + handoverMachines + handoverOther;
         
+        // Calculate disposed statistics
+        const disposedLaptops = disposedAssets.filter(a => a.asset_type === "Laptop").length;
+        const disposedPrinters = disposedAssets.filter(a => a.asset_type === "Printer").length;
+        const disposedMachines = disposedAssets.filter(a => a.asset_type === "Machine").length;
+        const disposedOther = disposedAssets.filter(a => a.asset_type === "Other").length;
+        const totalDisposed = disposedAssets.length;
+        
+        // Calculate disposed by location
+        const disposedBoralla = disposedAssets.filter(a => a.disposed_location === "Boralla").length;
+        const disposedLocation2 = disposedAssets.filter(a => a.disposed_location === "Location2").length;
+        const disposedLocation3 = disposedAssets.filter(a => a.disposed_location === "Location3").length;
+        
         setStats({
           totalLaptops, totalPrinters, totalMachines, totalOther, totalAssets,
           allocatedLaptops, allocatedPrinters, allocatedMachines, allocatedOther, totalAllocated,
           availableLaptops, availablePrinters, availableMachines, availableOther, totalAvailable,
           handoverLaptops, handoverPrinters, handoverMachines, handoverOther, totalHandover,
+          disposedLaptops, disposedPrinters, disposedMachines, disposedOther, totalDisposed,
+          disposedBoralla, disposedLocation2, disposedLocation3,
         });
         
         setLoading(false);
@@ -121,6 +147,21 @@ const Dashboard = () => {
     { name: 'Allocated', value: stats.totalAllocated, color: '#f59e0b' },
     { name: 'Available', value: stats.totalAvailable, color: '#10b981' },
     { name: 'Under Repair', value: stats.totalAssets - stats.totalAllocated - stats.totalAvailable, color: '#ef4444' },
+  ];
+
+  // Prepare data for disposed by location bar chart
+  const disposedLocationData = [
+    { name: 'Boralla', count: stats.disposedBoralla, color: '#ef4444' },
+    { name: 'Location2', count: stats.disposedLocation2, color: '#f59e0b' },
+    { name: 'Location3', count: stats.disposedLocation3, color: '#8b5cf6' },
+  ];
+
+  // Prepare data for asset type distribution
+  const assetTypeData = [
+    { name: 'Laptops', total: stats.totalLaptops, allocated: stats.allocatedLaptops, available: stats.availableLaptops, disposed: stats.disposedLaptops },
+    { name: 'Printers', total: stats.totalPrinters, allocated: stats.allocatedPrinters, available: stats.availablePrinters, disposed: stats.disposedPrinters },
+    { name: 'Machines', total: stats.totalMachines, allocated: stats.allocatedMachines, available: stats.availableMachines, disposed: stats.disposedMachines },
+    { name: 'Others', total: stats.totalOther, allocated: stats.allocatedOther, available: stats.availableOther, disposed: stats.disposedOther },
   ];
 
   const COLORS = ['#f59e0b', '#10b981', '#ef4444'];
@@ -160,32 +201,40 @@ const Dashboard = () => {
 
       {/* Summary Cards */}
       <div style={styles.summaryGrid}>
-        <div style={styles.summaryCard}>
-          <FaBoxes style={styles.summaryIcon} />
+        <div style={styles.summaryCard} onClick={() => navigate("/assets-list")}>
+          <div style={{...styles.summaryIconWrapper, backgroundColor: '#e0e7ff'}}>
+            <FaBoxes style={{...styles.summaryIcon, color: '#3b82f6'}} />
+          </div>
           <div style={styles.summaryContent}>
             <div style={styles.summaryNumber}>{stats.totalAssets}</div>
             <div style={styles.summaryLabel}>Total Assets</div>
           </div>
         </div>
-        <div style={styles.summaryCard}>
-          <FaUserCheck style={styles.summaryIcon} />
+        <div style={styles.summaryCard} onClick={() => navigate("/allocate-list")}>
+          <div style={{...styles.summaryIconWrapper, backgroundColor: '#fef3c7'}}>
+            <FaUserCheck style={{...styles.summaryIcon, color: '#f59e0b'}} />
+          </div>
           <div style={styles.summaryContent}>
             <div style={styles.summaryNumber}>{stats.totalAllocated}</div>
             <div style={styles.summaryLabel}>Allocated Assets</div>
           </div>
         </div>
-        <div style={styles.summaryCard}>
-          <FaCheckCircle style={styles.summaryIcon} />
+        <div style={styles.summaryCard} onClick={() => navigate("/assets-list")}>
+          <div style={{...styles.summaryIconWrapper, backgroundColor: '#d1fae5'}}>
+            <FaCheckCircle style={{...styles.summaryIcon, color: '#10b981'}} />
+          </div>
           <div style={styles.summaryContent}>
             <div style={styles.summaryNumber}>{stats.totalAvailable}</div>
             <div style={styles.summaryLabel}>Available Assets</div>
           </div>
         </div>
-        <div style={styles.summaryCard}>
-          <FaExchangeAlt style={styles.summaryIcon} />
+        <div style={styles.summaryCard} onClick={() => navigate("/disposed-assets")}>
+          <div style={{...styles.summaryIconWrapper, backgroundColor: '#fee2e2'}}>
+            <FaTrash style={{...styles.summaryIcon, color: '#ef4444'}} />
+          </div>
           <div style={styles.summaryContent}>
-            <div style={styles.summaryNumber}>{stats.totalHandover}</div>
-            <div style={styles.summaryLabel}>Handover Assets</div>
+            <div style={styles.summaryNumber}>{stats.totalDisposed}</div>
+            <div style={styles.summaryLabel}>Disposed Assets</div>
           </div>
         </div>
       </div>
@@ -219,33 +268,61 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Total Assets Section */}
-        <div style={styles.statsSection}>
-          <h2 style={styles.sectionTitle}>Total Assets</h2>
-          <div style={styles.statsGrid}>
-            <div style={styles.statCard}>
-              <FaLaptop style={styles.statIcon} />
-              <div style={styles.statNumber}>{stats.totalLaptops}</div>
-              <div style={styles.statLabel}>Laptops</div>
-            </div>
-            <div style={styles.statCard}>
-              <FaPrint style={styles.statIcon} />
-              <div style={styles.statNumber}>{stats.totalPrinters}</div>
-              <div style={styles.statLabel}>Printers</div>
-            </div>
-            <div style={styles.statCard}>
-              <FaMicrochip style={styles.statIcon} />
-              <div style={styles.statNumber}>{stats.totalMachines}</div>
-              <div style={styles.statLabel}>Machines</div>
-            </div>
-            <div style={styles.statCard}>
-              <FaBox style={styles.statIcon} />
-              <div style={styles.statNumber}>{stats.totalOther}</div>
-              <div style={styles.statLabel}>Others</div>
-            </div>
+        {/* Disposed by Location Chart */}
+        <div style={styles.chartSection}>
+          <h2 style={styles.sectionTitle}>Disposed Assets by Location</h2>
+          <div style={styles.chartContainer}>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={disposedLocationData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="count" fill="#ef4444" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
+
+      {/* Asset Type Distribution Table */}
+      {/* <div style={styles.tableSection}>
+        <h2 style={styles.sectionTitle}>Asset Type Distribution</h2>
+        <div style={styles.tableContainer}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th>Asset Type</th>
+                <th>Total</th>
+                <th>Allocated</th>
+                <th>Available</th>
+                <th>Disposed</th>
+                <th>Utilization</th>
+              </tr>
+            </thead>
+            <tbody>
+              {assetTypeData.map((item, index) => {
+                const utilization = item.total > 0 ? ((item.allocated / item.total) * 100).toFixed(1) : 0;
+                return (
+                  <tr key={index}>
+                    <td><strong>{item.name}</strong></td>
+                    <td>{item.total}</td>
+                    <td style={{ color: '#f59e0b' }}>{item.allocated}</td>
+                    <td style={{ color: '#10b981' }}>{item.available}</td>
+                    <td style={{ color: '#ef4444' }}>{item.disposed}</td>
+                    <td>
+                      <div style={styles.progressBar}>
+                        <div style={{...styles.progressFill, width: `${utilization}%`}}></div>
+                        <span style={styles.progressText}>{utilization}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div> */}
 
       {/* Asset Status Grid */}
       <div style={styles.statusGrid}>
@@ -309,55 +386,88 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Handover Section */}
+        {/* Disposed Section */}
         <div style={styles.statusCard}>
-          <div style={{...styles.statusHeader, backgroundColor: '#e0e7ff'}}>
-            <FaExchangeAlt style={styles.statusIcon} />
-            <h3 style={styles.statusTitle}>Handover Assets</h3>
+          <div style={{...styles.statusHeader, backgroundColor: '#fee2e2'}}>
+            <FaTrash style={styles.statusIcon} />
+            <h3 style={styles.statusTitle}>Disposed Assets</h3>
           </div>
           <div style={styles.statusContent}>
             <div style={styles.statusRow}>
               <span>Laptops</span>
-              <strong>{stats.handoverLaptops}</strong>
+              <strong>{stats.disposedLaptops}</strong>
             </div>
             <div style={styles.statusRow}>
               <span>Printers</span>
-              <strong>{stats.handoverPrinters}</strong>
+              <strong>{stats.disposedPrinters}</strong>
             </div>
             <div style={styles.statusRow}>
               <span>Machines</span>
-              <strong>{stats.handoverMachines}</strong>
+              <strong>{stats.disposedMachines}</strong>
             </div>
             <div style={styles.statusRow}>
               <span>Others</span>
-              <strong>{stats.handoverOther}</strong>
+              <strong>{stats.disposedOther}</strong>
             </div>
             <div style={styles.statusTotal}>
-              <span>Total Handover</span>
-              <strong>{stats.totalHandover}</strong>
+              <span>Total Disposed</span>
+              <strong>{stats.totalDisposed}</strong>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Disposed by Location Summary */}
+      {stats.totalDisposed > 0 && (
+        <div style={styles.locationSection}>
+          <h2 style={styles.sectionTitle}>Disposal Location Summary</h2>
+          <div style={styles.locationGrid}>
+            <div style={styles.locationCard}>
+              <div style={{...styles.locationBadge, backgroundColor: '#fee2e2', color: '#ef4444'}}>
+                Boralla
+              </div>
+              <div style={styles.locationCount}>{stats.disposedBoralla}</div>
+              <div style={styles.locationLabel}>Assets Disposed</div>
+            </div>
+            <div style={styles.locationCard}>
+              <div style={{...styles.locationBadge, backgroundColor: '#fef3c7', color: '#f59e0b'}}>
+                Location2
+              </div>
+              <div style={styles.locationCount}>{stats.disposedLocation2}</div>
+              <div style={styles.locationLabel}>Assets Disposed</div>
+            </div>
+            <div style={styles.locationCard}>
+              <div style={{...styles.locationBadge, backgroundColor: '#e0e7ff', color: '#3b82f6'}}>
+                Location3
+              </div>
+              <div style={styles.locationCount}>{stats.disposedLocation3}</div>
+              <div style={styles.locationLabel}>Assets Disposed</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Quick Actions */}
-      <div style={styles.actionsSection}>
+      {/* <div style={styles.actionsSection}>
         <h2 style={styles.sectionTitle}>Quick Actions</h2>
         <div style={styles.actionButtons}>
-          <button style={styles.actionButton} onClick={() => navigate("/add-asset")}>
+          <button style={styles.actionButton} onClick={() => navigate("/assetForm")}>
             <FaPlus style={{ marginRight: '8px' }} /> Add New Asset
           </button>
-          <button style={styles.actionButton} onClick={() => navigate("/allocate-asset")}>
+          <button style={styles.actionButton} onClick={() => navigate("/allocate-form")}>
             <FaShare style={{ marginRight: '8px' }} /> Allocate Asset
           </button>
           <button style={styles.actionButton} onClick={() => navigate("/assets-list")}>
             <FaList style={{ marginRight: '8px' }} /> View All Assets
           </button>
-          <button style={styles.actionButton} onClick={() => navigate("/allocations")}>
+          <button style={styles.actionButton} onClick={() => navigate("/allocate-list")}>
             <FaChartLine style={{ marginRight: '8px' }} /> View Allocations
           </button>
+          <button style={{...styles.actionButton, backgroundColor: '#6b7280'}} onClick={() => navigate("/disposed-assets")}>
+            <FaTrash style={{ marginRight: '8px' }} /> View Disposed
+          </button>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };
@@ -379,7 +489,7 @@ const styles = {
     gap: "16px",
   },
   title: {
-    fontSize: "32px",
+    fontSize: "28px",
     fontWeight: "700",
     color: "#111827",
     margin: 0,
@@ -413,18 +523,29 @@ const styles = {
     boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
     transition: "transform 0.2s, box-shadow 0.2s",
     cursor: "pointer",
+    ':hover': {
+      transform: "translateY(-2px)",
+      boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+    },
+  },
+  summaryIconWrapper: {
+    width: "56px",
+    height: "56px",
+    borderRadius: "12px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
   summaryIcon: {
-    fontSize: "40px",
-    color: "#6b7280", // neutral gray
+    fontSize: "28px",
   },
   summaryContent: {
     flex: 1,
   },
   summaryNumber: {
-    fontSize: "32px",
+    fontSize: "28px",
     fontWeight: "bold",
-    color: "#3b82f6",
+    color: "#111827",
     lineHeight: 1,
   },
   summaryLabel: {
@@ -448,11 +569,19 @@ const styles = {
     height: "300px",
     marginTop: "16px",
   },
-  statsSection: {
+  tableSection: {
     backgroundColor: "white",
     borderRadius: "16px",
     padding: "24px",
+    marginBottom: "32px",
     boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+  },
+  tableContainer: {
+    overflowX: "auto",
+  },
+  table: {
+    width: "100%",
+    borderCollapse: "collapse",
   },
   sectionTitle: {
     fontSize: "18px",
@@ -460,33 +589,28 @@ const styles = {
     color: "#111827",
     marginBottom: "20px",
   },
-  statsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))",
-    gap: "16px",
-  },
-  statCard: {
-    textAlign: "center",
-    padding: "16px",
-    backgroundColor: "#f9fafb",
+  progressBar: {
+    position: "relative",
+    width: "100px",
+    height: "24px",
+    backgroundColor: "#e5e7eb",
     borderRadius: "12px",
-    transition: "transform 0.2s",
-    cursor: "pointer",
+    overflow: "hidden",
   },
-  statIcon: {
-    fontSize: "32px",
-    color: "#6b7280",
-    marginBottom: "8px",
+  progressFill: {
+    height: "100%",
+    backgroundColor: "#3b82f6",
+    borderRadius: "12px",
+    transition: "width 0.3s",
   },
-  statNumber: {
-    fontSize: "24px",
+  progressText: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    fontSize: "11px",
     fontWeight: "bold",
-    color: "#3b82f6",
-  },
-  statLabel: {
-    fontSize: "12px",
-    color: "#6b7280",
-    marginTop: "4px",
+    color: "#111827",
   },
   statusGrid: {
     display: "grid",
@@ -540,6 +664,43 @@ const styles = {
     fontSize: "16px",
     color: "#111827",
   },
+  locationSection: {
+    backgroundColor: "white",
+    borderRadius: "16px",
+    padding: "24px",
+    marginBottom: "32px",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+  },
+  locationGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+    gap: "20px",
+    marginTop: "16px",
+  },
+  locationCard: {
+    textAlign: "center",
+    padding: "20px",
+    backgroundColor: "#f9fafb",
+    borderRadius: "12px",
+  },
+  locationBadge: {
+    display: "inline-block",
+    padding: "4px 12px",
+    borderRadius: "20px",
+    fontSize: "12px",
+    fontWeight: "600",
+    marginBottom: "12px",
+  },
+  locationCount: {
+    fontSize: "32px",
+    fontWeight: "bold",
+    color: "#111827",
+  },
+  locationLabel: {
+    fontSize: "12px",
+    color: "#6b7280",
+    marginTop: "4px",
+  },
   actionsSection: {
     backgroundColor: "white",
     borderRadius: "16px",
@@ -563,6 +724,10 @@ const styles = {
     transition: "all 0.2s",
     display: "inline-flex",
     alignItems: "center",
+    ':hover': {
+      backgroundColor: "#2563eb",
+      transform: "translateY(-1px)",
+    },
   },
   loadingContainer: {
     display: "flex",
@@ -603,6 +768,16 @@ styleSheet.textContent = `
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+  }
+  
+  .summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+  
+  .action-button:hover {
+    background-color: #2563eb;
+    transform: translateY(-1px);
   }
 `;
 document.head.appendChild(styleSheet);
