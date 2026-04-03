@@ -14,27 +14,35 @@ const departmentsRoutes = require("./routes/departments.routes");
 
 const errorHandler = require("./middlewares/errorMiddleware");
 
+require('dotenv').config();
+
 const app = express();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-require('dotenv').config();
-
 // Connect DB FIRST
 connectDB();
 
-// Sync Sequelize models - Using force: true for clean slate
+// Sync Sequelize models
 sequelize
-  .sync({ alter: true })  // This will drop and recreate all tables
+  .sync({ alter: true })
   .then(() => {
     console.log("✅ Models synced successfully");
-    console.log("All tables created successfully");
+    
+    // Run seeder for initial data
+    const { exec } = require('child_process');
+    exec('node seeders/20250101000000-initial-data.js', (error, stdout, stderr) => {
+      if (error) {
+        console.log("⚠️ Seeder not run automatically. Run manually if needed.");
+      } else {
+        console.log(stdout);
+      }
+    });
   })
   .catch((err) => {
     console.error("❌ Sync error:", err);
-    console.error("Error details:", err.message);
   });
 
 // Routes
@@ -46,6 +54,7 @@ app.use("/api/departments", departmentsRoutes);
 
 // Error handler (LAST)
 app.use(errorHandler);
+
 
 // Server
 const PORT = process.env.PORT || 5005;

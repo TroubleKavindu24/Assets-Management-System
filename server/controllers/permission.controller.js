@@ -1,20 +1,10 @@
 // controllers/permissionController.js
-
 const User = require("../models/User");
 const Permission = require("../models/Permission");
 const { sequelize } = require("../config/db");
 const { Op } = require("sequelize");
-
-// Available permissions list
-const AVAILABLE_PERMISSIONS = [
-  { id: "ADD_ASSETS", label: "Add Assets", description: "Can add new assets to the system" },
-  { id: "ALLOCATE_ASSETS", label: "Allocate Assets", description: "Can allocate assets to departments" },
-  { id: "VIEW_ASSETS_LIST", label: "View Assets List", description: "Can view all assets" },
-  { id: "VIEW_ALLOCATIONS_LIST", label: "View Allocations List", description: "Can view all asset allocations" },
-  { id: "MANAGE_HANDOVER", label: "Manage Handover", description: "Can manage asset handovers" },
-  { id: "VIEW_REPORTS", label: "View Reports", description: "Can view system reports" },
-  { id: "MANAGE_USERS", label: "Manage Users", description: "Can manage users" }
-];
+const { ALL_PERMISSIONS, ROLE_DEFAULT_PERMISSIONS } = require("../constants/permissions.constants");
+const { getUserPermissions } = require("../middlewares/permissionCheck");
 
 // Helper function to verify SUPER_ADMIN password
 const verifySuperAdminPassword = async (superAdminId, password) => {
@@ -36,15 +26,13 @@ const verifySuperAdminPassword = async (superAdminId, password) => {
 };
 
 /**
- * Get all users with their current active permissions
+ * Get all users with their permissions
  */
 exports.getAllUsersWithPermissions = async (req, res) => {
   try {
-    const { search, page = 1, limit = 50 } = req.query;
+    const { search, role, page = 1, limit = 50 } = req.query;
     
-    let whereClause = {
-      role: { [Op.ne]: "SUPER_ADMIN" }
-    };
+    let whereClause = {};
     
     if (search) {
       whereClause[Op.or] = [
@@ -53,37 +41,33 @@ exports.getAllUsersWithPermissions = async (req, res) => {
       ];
     }
     
+    if (role && role !== "ALL") {
+      whereClause.role = role;
+    }
+    
     const offset = (page - 1) * limit;
     
     const { count, rows: users } = await User.findAndCountAll({
       where: whereClause,
-      attributes: ['user_id', 'user_name', 'role', 'department_name', 'is_active', 'createdAt'],
-      order: [['createdAt', 'DESC']],
+      attributes: ['user_id', 'user_name', 'role', 'department_name', 'is_active', 'created_at'],
+      order: [['created_at', 'DESC']],
       limit: parseInt(limit),
       offset: offset
     });
     
-    // Get active permissions for each user
+    // Get permissions for each user
     const usersWithPermissions = await Promise.all(users.map(async (user) => {
-      const permissions = await Permission.findAll({
-        where: { 
-          user_id: user.user_id, 
-          status: "ACTIVE" 
-        },
-        attributes: ['permission_type', 'granted_at', 'granted_by'],
-        order: [['granted_at', 'DESC']]
-      });
+      const effectivePermissions = await getUserPermissions(user.user_id, user.role);
       
       return {
         ...user.toJSON(),
-        permissions: permissions.map(p => ({
-          type: p.permission_type,
-          granted_at: p.granted_at
-        }))
+        effective_permissions: effectivePermissions,
+        can_customize: user.role === "STAFF"  // Only STAFF can have custom permissions
       };
     }));
     
     return res.status(200).json({
+      success: true,
       message: "Users retrieved successfully",
       data: {
         users: usersWithPermissions,
@@ -99,6 +83,7 @@ exports.getAllUsersWithPermissions = async (req, res) => {
   } catch (error) {
     console.error("Error fetching users:", error);
     return res.status(500).json({
+      success: false,
       message: "Failed to fetch users",
       error: error.message
     });
@@ -111,11 +96,13 @@ exports.getAllUsersWithPermissions = async (req, res) => {
 exports.getAvailablePermissions = async (req, res) => {
   try {
     return res.status(200).json({
+      success: true,
       message: "Available permissions retrieved",
-      data: AVAILABLE_PERMISSIONS
+      data: ALL_PERMISSIONS
     });
   } catch (error) {
     return res.status(500).json({
+      success: false,
       message: "Failed to fetch permissions",
       error: error.message
     });
@@ -123,7 +110,7 @@ exports.getAvailablePermissions = async (req, res) => {
 };
 
 /**
- * Get user's permission history and current permissions
+ * Get user's current permissions
  */
 exports.getUserPermissions = async (req, res) => {
   try {
@@ -134,40 +121,48 @@ exports.getUserPermissions = async (req, res) => {
     });
     
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ 
+        success: false,
+        message: "User not found" 
+      });
     }
     
-    // Get current active permissions
-    const activePermissions = await Permission.findAll({
-      where: { 
-        user_id: userId, 
-        status: "ACTIVE" 
-      },
-      attributes: ['permission_type', 'granted_at', 'granted_by'],
-      order: [['granted_at', 'DESC']]
-    });
+    const effectivePermissions = await getUserPermissions(userId, user.role);
     
-    // Get permission history (all records)
-    const permissionHistory = await Permission.findAll({
-      where: { user_id: userId },
-      attributes: ['permission_type', 'action', 'status', 'granted_at', 'revoked_at', 'granted_by', 'revoked_by', 'remarks'],
-      order: [['granted_at', 'DESC']],
-      limit: 50
-    });
+    // Get detailed permission records for STAFF
+    let permissionDetails = [];
+    if (user.role === "STAFF") {
+      permissionDetails = await Permission.findAll({
+        where: { user_id: userId, status: "ACTIVE" },
+        attributes: ['permission_type', 'granted_at', 'granted_by', 'remarks'],
+        order: [['granted_at', 'DESC']]
+      });
+    }
     
     return res.status(200).json({
+      success: true,
       message: "User permissions retrieved",
       data: {
-        user,
-        active_permissions: activePermissions.map(p => p.permission_type),
-        permission_history: permissionHistory,
-        available_permissions: AVAILABLE_PERMISSIONS
+        user: {
+          user_id: user.user_id,
+          user_name: user.user_name,
+          role: user.role,
+          department_name: user.department_name,
+          is_active: user.is_active
+        },
+        effective_permissions: effectivePermissions,
+        is_customizable: user.role === "STAFF",
+        permission_details: permissionDetails,
+        available_permissions: ALL_PERMISSIONS,
+        default_permissions_for_role: user.role === "SUPER_ADMIN" ? ROLE_DEFAULT_PERMISSIONS.SUPER_ADMIN :
+                                    user.role === "ADMIN" ? ROLE_DEFAULT_PERMISSIONS.ADMIN : []
       }
     });
     
   } catch (error) {
     console.error("Error fetching user permissions:", error);
     return res.status(500).json({
+      success: false,
       message: "Failed to fetch permissions",
       error: error.message
     });
@@ -175,7 +170,7 @@ exports.getUserPermissions = async (req, res) => {
 };
 
 /**
- * Grant permission to user (creates new record)
+ * Grant permission to STAFF user
  */
 exports.grantPermission = async (req, res) => {
   const transaction = await sequelize.transaction();
@@ -187,7 +182,10 @@ exports.grantPermission = async (req, res) => {
     
     // Verify SUPER_ADMIN password
     if (!password) {
-      return res.status(400).json({ message: "Password is required for this action" });
+      return res.status(400).json({ 
+        success: false,
+        message: "Password is required for this action" 
+      });
     }
     
     await verifySuperAdminPassword(superAdmin.user_id, password);
@@ -197,19 +195,29 @@ exports.grantPermission = async (req, res) => {
     
     if (!user) {
       await transaction.rollback();
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ 
+        success: false,
+        message: "User not found" 
+      });
     }
     
-    if (user.role === "SUPER_ADMIN") {
+    // Only STAFF can have custom permissions
+    if (user.role !== "STAFF") {
       await transaction.rollback();
-      return res.status(403).json({ message: "Cannot modify SUPER_ADMIN permissions" });
+      return res.status(400).json({ 
+        success: false,
+        message: `Cannot grant custom permissions to ${user.role}. Only STAFF users can have custom permissions.` 
+      });
     }
     
     // Validate permission type
-    const validPermissions = AVAILABLE_PERMISSIONS.map(p => p.id);
+    const validPermissions = ALL_PERMISSIONS.map(p => p.id);
     if (!validPermissions.includes(permission_type)) {
       await transaction.rollback();
-      return res.status(400).json({ message: "Invalid permission type" });
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid permission type" 
+      });
     }
     
     // Check if permission already active
@@ -224,11 +232,12 @@ exports.grantPermission = async (req, res) => {
     if (existingPermission) {
       await transaction.rollback();
       return res.status(400).json({ 
+        success: false,
         message: `User already has active permission: ${permission_type}` 
       });
     }
     
-    // Create new permission record (GRANT)
+    // Create new permission record
     const newPermission = await Permission.create({
       user_id: userId,
       permission_type: permission_type,
@@ -242,6 +251,7 @@ exports.grantPermission = async (req, res) => {
     await transaction.commit();
     
     return res.status(200).json({
+      success: true,
       message: `Permission ${permission_type} granted to ${user.user_name} successfully`,
       data: {
         permission: {
@@ -261,11 +271,15 @@ exports.grantPermission = async (req, res) => {
     await transaction.rollback();
     console.error("Error granting permission:", error);
     
-    if (error.message.includes("Invalid password")) {
-      return res.status(400).json({ message: error.message });
+    if (error.message.includes("Invalid password") || error.message.includes("not found")) {
+      return res.status(400).json({ 
+        success: false,
+        message: error.message 
+      });
     }
     
     return res.status(500).json({
+      success: false,
       message: "Failed to grant permission",
       error: error.message
     });
@@ -273,7 +287,7 @@ exports.grantPermission = async (req, res) => {
 };
 
 /**
- * Revoke permission from user (creates new record)
+ * Revoke permission from STAFF user
  */
 exports.revokePermission = async (req, res) => {
   const transaction = await sequelize.transaction();
@@ -285,7 +299,10 @@ exports.revokePermission = async (req, res) => {
     
     // Verify SUPER_ADMIN password
     if (!password) {
-      return res.status(400).json({ message: "Password is required for this action" });
+      return res.status(400).json({ 
+        success: false,
+        message: "Password is required for this action" 
+      });
     }
     
     await verifySuperAdminPassword(superAdmin.user_id, password);
@@ -295,7 +312,10 @@ exports.revokePermission = async (req, res) => {
     
     if (!user) {
       await transaction.rollback();
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ 
+        success: false,
+        message: "User not found" 
+      });
     }
     
     // Find active permission
@@ -310,6 +330,7 @@ exports.revokePermission = async (req, res) => {
     if (!activePermission) {
       await transaction.rollback();
       return res.status(404).json({ 
+        success: false,
         message: `No active permission found for: ${permissionType}` 
       });
     }
@@ -337,6 +358,7 @@ exports.revokePermission = async (req, res) => {
     await transaction.commit();
     
     return res.status(200).json({
+      success: true,
       message: `Permission ${permissionType} revoked from ${user.user_name} successfully`,
       data: {
         permission: {
@@ -356,11 +378,15 @@ exports.revokePermission = async (req, res) => {
     await transaction.rollback();
     console.error("Error revoking permission:", error);
     
-    if (error.message.includes("Invalid password")) {
-      return res.status(400).json({ message: error.message });
+    if (error.message.includes("Invalid password") || error.message.includes("not found")) {
+      return res.status(400).json({ 
+        success: false,
+        message: error.message 
+      });
     }
     
     return res.status(500).json({
+      success: false,
       message: "Failed to revoke permission",
       error: error.message
     });
@@ -380,7 +406,10 @@ exports.grantMultiplePermissions = async (req, res) => {
     
     // Verify SUPER_ADMIN password
     if (!password) {
-      return res.status(400).json({ message: "Password is required for this action" });
+      return res.status(400).json({ 
+        success: false,
+        message: "Password is required for this action" 
+      });
     }
     
     await verifySuperAdminPassword(superAdmin.user_id, password);
@@ -390,21 +419,34 @@ exports.grantMultiplePermissions = async (req, res) => {
     
     if (!user) {
       await transaction.rollback();
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ 
+        success: false,
+        message: "User not found" 
+      });
+    }
+    
+    if (user.role !== "STAFF") {
+      await transaction.rollback();
+      return res.status(400).json({ 
+        success: false,
+        message: "Only STAFF users can have custom permissions" 
+      });
     }
     
     if (!Array.isArray(permissions) || permissions.length === 0) {
       await transaction.rollback();
-      return res.status(400).json({ message: "Permissions must be a non-empty array" });
+      return res.status(400).json({ 
+        success: false,
+        message: "Permissions must be a non-empty array" 
+      });
     }
     
-    const validPermissions = AVAILABLE_PERMISSIONS.map(p => p.id);
+    const validPermissions = ALL_PERMISSIONS.map(p => p.id);
     const results = [];
     const errors = [];
     
     for (const permissionType of permissions) {
       try {
-        // Validate permission
         if (!validPermissions.includes(permissionType)) {
           errors.push({ permission: permissionType, error: "Invalid permission type" });
           continue;
@@ -449,6 +491,7 @@ exports.grantMultiplePermissions = async (req, res) => {
     await transaction.commit();
     
     return res.status(200).json({
+      success: true,
       message: `Granted ${results.length} permissions to ${user.user_name}`,
       data: {
         user: {
@@ -467,11 +510,15 @@ exports.grantMultiplePermissions = async (req, res) => {
     await transaction.rollback();
     console.error("Error granting multiple permissions:", error);
     
-    if (error.message.includes("Invalid password")) {
-      return res.status(400).json({ message: error.message });
+    if (error.message.includes("Invalid password") || error.message.includes("not found")) {
+      return res.status(400).json({ 
+        success: false,
+        message: error.message 
+      });
     }
     
     return res.status(500).json({
+      success: false,
       message: "Failed to grant permissions",
       error: error.message
     });
@@ -489,7 +536,10 @@ exports.getPermissionHistory = async (req, res) => {
     const user = await User.findByPk(userId);
     
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ 
+        success: false,
+        message: "User not found" 
+      });
     }
     
     const offset = (page - 1) * limit;
@@ -523,6 +573,7 @@ exports.getPermissionHistory = async (req, res) => {
     }));
     
     return res.status(200).json({
+      success: true,
       message: "Permission history retrieved",
       data: {
         user: {
@@ -542,6 +593,7 @@ exports.getPermissionHistory = async (req, res) => {
   } catch (error) {
     console.error("Error fetching permission history:", error);
     return res.status(500).json({
+      success: false,
       message: "Failed to fetch permission history",
       error: error.message
     });
@@ -549,33 +601,39 @@ exports.getPermissionHistory = async (req, res) => {
 };
 
 /**
- * Get all active permissions for a user (for permission checking)
+ * Get all active permissions for a user
  */
 exports.getActivePermissions = async (req, res) => {
   try {
     const { userId } = req.params;
     
-    const activePermissions = await Permission.findAll({
-      where: {
-        user_id: userId,
-        status: "ACTIVE"
-      },
-      attributes: ['permission_type', 'granted_at'],
-      order: [['granted_at', 'ASC']]
-    });
+    const user = await User.findByPk(userId);
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        message: "User not found" 
+      });
+    }
+    
+    const effectivePermissions = await getUserPermissions(userId, user.role);
     
     return res.status(200).json({
+      success: true,
       message: "Active permissions retrieved",
       data: {
         user_id: userId,
-        permissions: activePermissions.map(p => p.permission_type),
-        count: activePermissions.length
+        user_name: user.user_name,
+        role: user.role,
+        permissions: effectivePermissions,
+        count: effectivePermissions.length
       }
     });
     
   } catch (error) {
     console.error("Error fetching active permissions:", error);
     return res.status(500).json({
+      success: false,
       message: "Failed to fetch active permissions",
       error: error.message
     });
