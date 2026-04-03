@@ -30,29 +30,22 @@ const NavBar = () => {
   };
 
   return (
-    <nav style={styles.nav}>
-      <div style={styles.container}>
+    <>
+      <div style={styles.sidebar}>
         <div style={styles.logo}>
           <Link to="/" style={styles.logoLink}>
-            Asset Management System
+            Asset Management
           </Link>
         </div>
 
         {user && (
-          <div style={styles.navLinks}>
+          <div style={styles.navContainer}>
             <Link to="/" style={styles.link}>
               Dashboard
             </Link>
             
             {/* Assets Dropdown */}
-            <div 
-              style={styles.dropdown}
-              onMouseEnter={() => {
-                setIsAssetsOpen(true);
-                setIsManageOpen(false);
-              }}
-              onMouseLeave={() => setIsAssetsOpen(false)}
-            >
+            <div style={styles.dropdown}>
               <button 
                 onClick={toggleAssetsDropdown}
                 style={styles.dropdownBtn}
@@ -66,22 +59,22 @@ const NavBar = () => {
               {isAssetsOpen && (
                 <div style={styles.dropdownContent}>
                   <Link to="/assetForm" style={styles.dropdownLink}>
-                    Add Asset
+                    ➤ Add Asset
                   </Link>
                   <Link to="/allocate-form" style={styles.dropdownLink}>
-                    Allocate Asset
+                    ➤ Allocate Asset
                   </Link>
                   <Link to="/req-asset" style={styles.dropdownLink}>
-                    Request Asset
+                    ➤ Request Asset
                   </Link>
                   <Link to="/allocate-list" style={styles.dropdownLink}>
-                    Allocation List
+                    ➤ Allocation List
                   </Link>
                   <Link to="/assets-list" style={styles.dropdownLink}>
-                    Asset List
+                    ➤ Asset List
                   </Link>
                   <Link to="/dispose-list" style={styles.dropdownLink}>
-                    Disposed Assets
+                    ➤ Disposed Assets
                   </Link>
                 </div>
               )}
@@ -89,14 +82,7 @@ const NavBar = () => {
             
             {/* Manage Dropdown - Only for SUPER_ADMIN */}
             {user.role === "SUPER_ADMIN" && (
-              <div 
-                style={styles.dropdown}
-                onMouseEnter={() => {
-                  setIsManageOpen(true);
-                  setIsAssetsOpen(false);
-                }}
-                onMouseLeave={() => setIsManageOpen(false)}
-              >
+              <div style={styles.dropdown}>
                 <button 
                   onClick={toggleManageDropdown}
                   style={styles.dropdownBtn}
@@ -110,16 +96,16 @@ const NavBar = () => {
                 {isManageOpen && (
                   <div style={styles.dropdownContent}>
                     <Link to="/rolemanagement" style={styles.dropdownLink}>
-                      Role Management
+                      ➤ Role Management
                     </Link>
                     <Link to="/permissions" style={styles.dropdownLink}>
-                      Permissions Management
+                      ➤ Permissions Management
                     </Link>
                     <Link to="/register" style={styles.dropdownLink}>
-                      User Register
+                      ➤ User Register
                     </Link>
                     <Link to="/reports" style={styles.dropdownLink}>
-                      Reports
+                      ➤ Reports
                     </Link>
                   </div>
                 )}
@@ -127,8 +113,10 @@ const NavBar = () => {
             )}
             
             <div style={styles.userInfo}>
-              <span style={styles.userName}>{user.user_name}</span>
-              <span style={styles.userRole}>({user.role})</span>
+              <div style={styles.userDetails}>
+                <span style={styles.userName}>{user.user_name}</span>
+                <span style={styles.userRole}>({user.role})</span>
+              </div>
               <button onClick={handleLogout} style={styles.logoutBtn}>
                 Logout
               </button>
@@ -136,147 +124,160 @@ const NavBar = () => {
           </div>
         )}
       </div>
-    </nav>
+    </>
   );
 };
 
 const styles = {
-  nav: {
+  sidebar: {
+    width: "260px",
     backgroundColor: "#2c3e50",
-    padding: "0 20px",
-    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-    height: "60px",
-    display: "flex",
-    alignItems: "center",
-    position: "sticky",
+    height: "100vh",
+    position: "fixed",
     top: 0,
+    left: 0,
+    color: "white",
+    display: "flex",
+    flexDirection: "column",
+    boxShadow: "2px 0 5px rgba(0,0,0,0.1)",
+    overflowY: "auto",
     zIndex: 1000,
   },
-  container: {
-    maxWidth: "1200px",
-    width: "100%",
-    margin: "0 auto",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
   logo: {
-    fontSize: "1.2rem",
-    fontWeight: "bold",
+    padding: "20px",
+    borderBottom: "1px solid #465c6f",
+    marginBottom: "20px",
+    textAlign: "center",
   },
   logoLink: {
     color: "#ecf0f1",
     textDecoration: "none",
+    fontSize: "1.2rem",
+    fontWeight: "bold",
     transition: "color 0.3s",
+    display: "block",
     ":hover": {
       color: "#3498db",
     },
   },
-  navLinks: {
+  navContainer: {
+    flex: 1,
     display: "flex",
-    alignItems: "center",
-    gap: "1.2rem",
+    flexDirection: "column",
+    padding: "0 15px",
   },
   link: {
     color: "#ecf0f1",
     textDecoration: "none",
-    padding: "0.5rem 0",
-    fontSize: "0.9rem",
-    transition: "color 0.3s",
-    whiteSpace: "nowrap",
+    padding: "12px 15px",
+    fontSize: "0.95rem",
+    transition: "all 0.3s",
+    borderRadius: "6px",
+    marginBottom: "5px",
+    display: "block",
     cursor: "pointer",
     ":hover": {
+      backgroundColor: "#34495e",
       color: "#3498db",
+      paddingLeft: "20px",
     },
   },
   dropdown: {
-    position: "relative",
-    display: "inline-block",
+    marginBottom: "5px",
+    width: "100%",
   },
   dropdownBtn: {
     backgroundColor: "transparent",
     color: "#ecf0f1",
     border: "none",
-    padding: "0.5rem 0",
-    fontSize: "0.9rem",
+    padding: "12px 15px",
+    fontSize: "0.95rem",
     cursor: "pointer",
-    transition: "color 0.3s",
-    whiteSpace: "nowrap",
+    transition: "all 0.3s",
     fontFamily: "inherit",
+    width: "100%",
+    textAlign: "left",
+    borderRadius: "6px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
     ":hover": {
+      backgroundColor: "#34495e",
       color: "#3498db",
     },
   },
   dropdownArrow: {
     fontSize: "0.7rem",
-    marginLeft: "4px",
+    marginLeft: "8px",
   },
   dropdownContent: {
-    position: "absolute",
-    top: "35px",
-    left: "0",
-    backgroundColor: "#fff",
-    minWidth: "180px",
-    boxShadow: "0 8px 16px rgba(0,0,0,0.2)",
-    borderRadius: "4px",
-    zIndex: 1000,
+    backgroundColor: "#34495e",
+    marginLeft: "15px",
+    marginTop: "5px",
+    marginBottom: "5px",
+    borderRadius: "6px",
     overflow: "hidden",
-    animation: "fadeIn 0.2s ease-in-out",
+    animation: "slideDown 0.2s ease-in-out",
   },
   dropdownLink: {
-    color: "#333",
-    padding: "12px 16px",
+    color: "#ecf0f1",
+    padding: "10px 15px 10px 30px",
     textDecoration: "none",
     display: "block",
     fontSize: "0.9rem",
     transition: "all 0.3s",
-    whiteSpace: "nowrap",
-    borderBottom: "1px solid #f0f0f0",
     cursor: "pointer",
+    borderLeft: "3px solid transparent",
     ":hover": {
-      backgroundColor: "#f5f5f5",
+      backgroundColor: "#2c3e50",
       color: "#3498db",
-      paddingLeft: "20px",
-    },
-    ":last-child": {
-      borderBottom: "none",
+      borderLeftColor: "#3498db",
+      paddingLeft: "35px",
     },
   },
   userInfo: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.8rem",
-    marginLeft: "0.5rem",
-    paddingLeft: "0.5rem",
-    borderLeft: "1px solid #465c6f",
+    marginTop: "auto",
+    padding: "20px 15px",
+    borderTop: "1px solid #465c6f",
+    marginBottom: "20px",
+  },
+  userDetails: {
+    marginBottom: "12px",
+    textAlign: "center",
   },
   userName: {
     color: "#3498db",
     fontWeight: "bold",
-    fontSize: "0.9rem",
+    fontSize: "0.95rem",
+    display: "block",
+    marginBottom: "4px",
   },
   userRole: {
     color: "#95a5a6",
     fontSize: "0.85rem",
+    display: "block",
   },
   logoutBtn: {
     backgroundColor: "#e74c3c",
     color: "white",
     border: "none",
-    padding: "0.4rem 0.8rem",
-    borderRadius: "4px",
+    padding: "8px 16px",
+    borderRadius: "6px",
     cursor: "pointer",
-    fontSize: "0.85rem",
-    transition: "backgroundColor 0.3s",
+    fontSize: "0.9rem",
+    transition: "all 0.3s",
+    width: "100%",
+    fontWeight: "bold",
     ":hover": {
       backgroundColor: "#c0392b",
+      transform: "translateY(-1px)",
     },
   },
 };
 
-// Add CSS animation keyframes (add this to your global CSS file)
+// Add CSS animation keyframes
 const globalStyles = `
-@keyframes fadeIn {
+@keyframes slideDown {
   from {
     opacity: 0;
     transform: translateY(-10px);
@@ -287,19 +288,22 @@ const globalStyles = `
   }
 }
 
-/* Responsive design for mobile */
-@media (max-width: 768px) {
-  .nav-links {
-    gap: 0.8rem;
-  }
-  
-  .dropdown-content {
-    position: fixed;
-    top: auto;
-    left: 0;
-    right: 0;
-    margin: 0 10px;
-  }
+/* Custom scrollbar for sidebar */
+.sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: #2c3e50;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: #465c6f;
+  border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: #3498db;
 }
 `;
 

@@ -19,7 +19,8 @@ import LoginPage from "./pages/Auth/LoginPage";
 import RegisterPage from "./pages/Auth/RegisterPage";
 import PermissionManagement from "./pages/PermissionManagement/PermissionManagement";
 
-import DisposePage from "./pages/Dispose/DisposedAssets"
+import DisposePage from "./pages/Dispose/DisposedAssets";
+import Footer from "./components/Footer";
 
 const AppContent = () => {
   const { loading } = useContext(AuthContext);
@@ -36,7 +37,7 @@ const AppContent = () => {
   return (
     <Router>
       <NavBar />
-      <div style={styles.content}>
+      <div style={styles.mainContent}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
 
@@ -122,6 +123,7 @@ const AppContent = () => {
             }
           />
         </Routes>
+        <Footer />
       </div>
     </Router>
   );
@@ -151,9 +153,20 @@ const styles = {
     height: "40px",
     animation: "spin 1s linear infinite",
   },
-  content: {
+  mainContent: {
+    marginLeft: "260px", // Same width as sidebar
     padding: "20px",
+    minHeight: "100vh",
+    backgroundColor: "#f5f5f5",
   },
 };
+
+// Add spin animation for loader
+const spinStyles = `
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+`;
 
 export default App;

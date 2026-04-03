@@ -1,35 +1,77 @@
-/* src/components/AddAssetForm.css */
-.add-asset-container {
-  background: white;
+/* src/components/AddAssetForm.css - REMOVED position: fixed */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.form-page {
+  background: #f5f5f5;
+  min-height: calc(100vh - 120px); /* Adjust based on navbar + footer height */
+  padding: 2rem;
+}
+
+.form-wrapper {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.form-container {
+  width: 100%;
+  background: #ffffff;
   border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
 }
 
 .form-header {
-  background: rgb(137, 56, 56);
   padding: 1.5rem;
-  text-align: center;
+  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 12px 12px 0 0;
 }
 
 .form-header h2 {
-  color: rgb(0, 0, 0);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
   margin-bottom: 0.5rem;
 }
 
 .form-header p {
-  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.875rem;
+  color: #6b7280;
 }
 
-.asset-form {
-  padding: 2rem;
+.message {
+  padding: 0.75rem 1rem;
+  margin: 1rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  border: 1px solid;
+}
+
+.message.success {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.message.error {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+form {
+  padding: 1.5rem;
 }
 
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 .form-group {
@@ -38,94 +80,111 @@
 }
 
 .form-group label {
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
   margin-bottom: 0.5rem;
-  color: #333;
-  font-size: 0.9rem;
+  color: #374151;
+}
+
+.required {
+  color: #dc2626;
+  margin-left: 2px;
 }
 
 .form-control {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 1rem;
-  transition: all 0.3s ease;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  font-family: inherit;
+  transition: all 0.2s;
 }
 
 .form-control:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #6b7280;
+  box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.1);
+}
+
+.form-control::placeholder {
+  color: #9ca3af;
 }
 
 .form-actions {
   display: flex;
-  gap: 1rem;
-  margin-top: 2rem;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
 }
 
-.submit-btn,
-.reset-btn {
+.btn-primary,
+.btn-secondary {
   flex: 1;
-  padding: 0.75rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 600;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s;
+  font-family: inherit;
 }
 
-.submit-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+.btn-primary {
+  background: #374151;
+  color: #ffffff;
+  border: none;
 }
 
-.submit-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+.btn-primary:hover:not(:disabled) {
+  background: #1f2937;
+  transform: translateY(-1px);
 }
 
-.submit-btn:disabled {
-  opacity: 0.6;
+.btn-primary:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-.reset-btn {
-  background: #f5f5f5;
-  color: #666;
-  border: 1px solid #ddd;
+.btn-secondary {
+  background: #ffffff;
+  color: #374151;
+  border: 1px solid #d1d5db;
 }
 
-.reset-btn:hover {
-  background: #e8e8e8;
-}
-
-.success-message {
-  background: #d4edda;
-  color: #155724;
-  padding: 0.75rem;
-  margin: 1rem 2rem;
-  border-radius: 6px;
-  border-left: 4px solid #28a745;
-}
-
-.error-message {
-  background: #f8d7da;
-  color: #721c24;
-  padding: 0.75rem;
-  margin: 1rem 2rem;
-  border-radius: 6px;
-  border-left: 4px solid #dc3545;
+.btn-secondary:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
 }
 
 @media (max-width: 768px) {
+  .form-page {
+    padding: 1rem;
+  }
+  
   .form-row {
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: 0.75rem;
   }
-
-  .asset-form {
-    padding: 1.5rem;
+  
+  form {
+    padding: 1rem;
+  }
+  
+  .message {
+    margin: 1rem;
+  }
+  
+  .form-container {
+    border-radius: 8px;
+  }
+  
+  .form-header {
+    padding: 1rem;
+  }
+  
+  .form-header h2 {
+    font-size: 1.25rem;
   }
 }

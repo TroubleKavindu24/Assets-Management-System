@@ -1,5 +1,6 @@
 // src/components/AddAssetForm.jsx
 import React, { useState } from 'react';
+import Footer from '../../components/Footer';
 import './AddAssetForm.css';
 
 const AddAssetForm = () => {
@@ -15,9 +16,8 @@ const AddAssetForm = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Brand options based on your model's ENUM
   const brandOptions = [
-    { value: '', label: '-- Select Brand --' },
+    { value: '', label: 'Select Brand' },
     { value: 'HP', label: 'HP' },
     { value: 'DELL', label: 'DELL' },
     { value: 'TOSHIBA', label: 'TOSHIBA' },
@@ -26,9 +26,8 @@ const AddAssetForm = () => {
     { value: 'N/A', label: 'N/A' },
   ];
 
-  // OS options based on your model's ENUM
   const osOptions = [
-    { value: '', label: '-- Select OS --' },
+    { value: '', label: 'Select OS' },
     { value: 'Windows 10', label: 'Windows 10' },
     { value: 'Windows 11', label: 'Windows 11' },
     { value: 'macOS', label: 'macOS' },
@@ -73,7 +72,7 @@ const AddAssetForm = () => {
         throw new Error(result.message || 'Failed to add asset');
       }
 
-      setMessage('✅ Asset added successfully!');
+      setMessage('Asset added successfully!');
       setFormData({
         asset_type: '',
         serial_no: '',
@@ -91,115 +90,119 @@ const AddAssetForm = () => {
     }
   };
 
+  const handleReset = () => {
+    setFormData({
+      asset_type: '',
+      serial_no: '',
+      brand: '',
+      os: '',
+      purchase_date: '',
+    });
+  };
+
   return (
-    <div className="add-asset-container">
-      <div className="form-header">
-        <h2>Add New Asset</h2>
-        <p>Fill in the details below to add a new asset to inventory</p>
+    <div className="form-page">
+      <div className="form-wrapper">
+        <div className="form-container">
+          <div className="form-header">
+            <h2>Add New Asset</h2>
+            <p>Fill in the details below to add a new asset to inventory</p>
+          </div>
+
+          {message && <div className="message success">{message}</div>}
+          {error && <div className="message error">{error}</div>}
+
+          <form onSubmit={handleSubmit}>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Asset Type <span className="required">*</span></label>
+                <select
+                  name="asset_type"
+                  value={formData.asset_type}
+                  onChange={handleChange}
+                  required
+                  className="form-control"
+                >
+                  <option value="">Select Type</option>
+                  <option value="Laptop">Laptop</option>
+                  <option value="Machine">Machine</option>
+                  <option value="Printer">Printer</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Serial Number <span className="required">*</span></label>
+                <input
+                  type="text"
+                  name="serial_no"
+                  value={formData.serial_no}
+                  onChange={handleChange}
+                  required
+                  placeholder="Enter serial number"
+                  className="form-control"
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Brand</label>
+                <select
+                  name="brand"
+                  value={formData.brand}
+                  onChange={handleChange}
+                  className="form-control"
+                >
+                  {brandOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Operating System</label>
+                <select
+                  name="os"
+                  value={formData.os}
+                  onChange={handleChange}
+                  className="form-control"
+                >
+                  {osOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Purchase Date</label>
+                <input
+                  type="date"
+                  name="purchase_date"
+                  value={formData.purchase_date}
+                  onChange={handleChange}
+                  className="form-control"
+                />
+              </div>
+            </div>
+
+            <div className="form-actions">
+              <button type="submit" disabled={loading} className="btn-primary">
+                {loading ? 'Adding...' : 'Add Asset'}
+              </button>
+              <button type="button" onClick={handleReset} className="btn-secondary">
+                Clear Form
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-
-      {message && <div className="success-message">{message}</div>}
-      {error && <div className="error-message">{error}</div>}
-
-      <form onSubmit={handleSubmit} className="asset-form">
-        <div className="form-row">
-          <div className="form-group">
-            <label>Asset Type *</label>
-            <select
-              name="asset_type"
-              value={formData.asset_type}
-              onChange={handleChange}
-              required
-              className="form-control"
-            >
-              <option value="">-- Select Type --</option>
-              <option value="Laptop">Laptop</option>
-              <option value="Machine">Machine</option>
-              <option value="Printer">Printer</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Serial Number *</label>
-            <input
-              type="text"
-              name="serial_no"
-              value={formData.serial_no}
-              onChange={handleChange}
-              required
-              placeholder="Enter serial number"
-              className="form-control"
-            />
-          </div>
-        </div>
-
-        <div className="form-row">
-          <div className="form-group">
-            <label>Brand</label>
-            <select
-              name="brand"
-              value={formData.brand}
-              onChange={handleChange}
-              className="form-control"
-            >
-              {brandOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Operating System</label>
-            <select
-              name="os"
-              value={formData.os}
-              onChange={handleChange}
-              className="form-control"
-            >
-              {osOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="form-row">
-          <div className="form-group">
-            <label>Purchase Date</label>
-            <input
-              type="date"
-              name="purchase_date"
-              value={formData.purchase_date}
-              onChange={handleChange}
-              className="form-control"
-            />
-          </div>
-        </div>
-
-        <div className="form-actions">
-          <button type="submit" disabled={loading} className="submit-btn">
-            {loading ? 'Adding Asset...' : '+ Add Asset'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setFormData({
-              asset_type: '',
-              serial_no: '',
-              brand: '',
-              os: '',
-              purchase_date: '',
-            })}
-            className="reset-btn"
-          >
-            Clear Form
-          </button>
-        </div>
-      </form>
     </div>
   );
 };

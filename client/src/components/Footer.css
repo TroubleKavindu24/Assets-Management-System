@@ -1,0 +1,21 @@
+/* src/components/Footer.css */
+.footer {
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  padding: 1rem;
+  text-align: center;
+  margin-top: auto;
+}
+
+.footer-content p {
+  color: #6b7280;
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+/* If you want footer to stick to bottom when content is short */
+.footer {
+  position: relative;
+  bottom: 0;
+  width: 100%;
+}
