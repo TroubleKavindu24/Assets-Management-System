@@ -162,11 +162,12 @@ const styles = {
 };
 
 // Add spin animation for loader
-const spinStyles = `
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-`;
+// const spinStyles = `
+// @keyframes spin {
+//   0% { transform: rotate(0deg); }
+//   100% { transform: rotate(360deg); }
+// }
+// `
+;
 
 export default App;

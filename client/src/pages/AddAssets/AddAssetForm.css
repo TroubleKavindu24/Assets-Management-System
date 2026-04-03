@@ -24,25 +24,6 @@
   border: 1px solid #e5e7eb;
 }
 
-.form-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-  background: #ffffff;
-  border-radius: 12px 12px 0 0;
-}
-
-.form-header h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 0.5rem;
-}
-
-.form-header p {
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
 .message {
   padding: 0.75rem 1rem;
   margin: 1rem 1.5rem;
@@ -178,13 +159,5 @@ form {
   
   .form-container {
     border-radius: 8px;
-  }
-  
-  .form-header {
-    padding: 1rem;
-  }
-  
-  .form-header h2 {
-    font-size: 1.25rem;
   }
 }

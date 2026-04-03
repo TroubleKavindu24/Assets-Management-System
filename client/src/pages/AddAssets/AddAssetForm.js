@@ -102,17 +102,19 @@ const AddAssetForm = () => {
 
   return (
     <div className="form-page">
+      <div>
+        <h2>Add New Asset</h2>
+      </div>
       <div className="form-wrapper">
         <div className="form-container">
-          <div className="form-header">
-            <h2>Add New Asset</h2>
-            <p>Fill in the details below to add a new asset to inventory</p>
-          </div>
-
-          {message && <div className="message success">{message}</div>}
-          {error && <div className="message error">{error}</div>}
+          
 
           <form onSubmit={handleSubmit}>
+            <div className="form-para">
+              <p>Fill in the details below to add a new asset to inventory</p>
+            </div>
+          {message && <div className="message success">{message}</div>}
+          {error && <div className="message error">{error}</div>}
             <div className="form-row">
               <div className="form-group">
                 <label>Asset Type <span className="required">*</span></label>

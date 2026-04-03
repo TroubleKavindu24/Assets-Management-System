@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './AssetList.css';
-import AllocateAssetModal from './AllocateAssetModal';
+import AllocateAssetModal from '../Allocation/AllocateAssetModal';
 import HandoverAssetModal from './HandoverAssetModal';
 import DisposeAssetModal from '../../components/DisposeAssetModal';
 

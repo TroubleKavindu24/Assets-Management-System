@@ -1,6 +1,6 @@
 // src/components/AllocateAssetModal.jsx
 import React, { useState, useEffect } from 'react';
-import './Modal.css';
+import '../AssetsList/Modal.css';
 
 const AllocateAssetModal = ({ isOpen, onClose, asset }) => {
   const [formData, setFormData] = useState({
