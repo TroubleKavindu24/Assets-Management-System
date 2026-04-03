@@ -1,310 +1,214 @@
 import React, { useContext, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import Logo from "../assets/Logo1.png";
+import {
+  FaHome,
+  FaBox,
+  FaUsers,
+  FaCog,
+  FaChevronDown,
+  FaSignOutAlt,
+} from "react-icons/fa";
 
 const NavBar = () => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [isAssetsOpen, setIsAssetsOpen] = useState(false);
-  const [isManageOpen, setIsManageOpen] = useState(false);
+  const location = useLocation();
+
+  const [openMenu, setOpenMenu] = useState(null);
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
-  // Don't show navbar on login page
-  if (window.location.pathname === "/login") {
-    return null;
-  }
+  if (location.pathname === "/login") return null;
 
-  // Toggle dropdowns
-  const toggleAssetsDropdown = () => {
-    setIsAssetsOpen(!isAssetsOpen);
-    setIsManageOpen(false);
-  };
-
-  const toggleManageDropdown = () => {
-    setIsManageOpen(!isManageOpen);
-    setIsAssetsOpen(false);
+  const toggleMenu = (menu) => {
+    setOpenMenu(openMenu === menu ? null : menu);
   };
 
   return (
-    <>
-      <div style={styles.sidebar}>
-        <div style={styles.logo}>
-          <Link to="/" style={styles.logoLink}>
-            Asset Management
-          </Link>
+    <div style={styles.sidebar}>
+      {/* Logo */}
+      <div style={styles.logoContainer}>
+        <img src={Logo} alt="logo" style={styles.logo} />
+        {/* <h3 style={styles.title}>AssetMaster</h3>
+        <span style={styles.subtitle}>Management System</span> */}
+      </div>
+
+      {/* Menu */}
+      <div style={styles.menu}>
+        <NavItem to="/" icon={<FaHome />} label="Dashboard" />
+
+        {/* Assets */}
+        <div>
+          <div style={styles.menuItem} onClick={() => toggleMenu("assets")}>
+            <span style={styles.icon}><FaBox /></span>
+            Assets
+            <FaChevronDown style={styles.arrow} />
+          </div>
+
+          {openMenu === "assets" && (
+            <div style={styles.subMenu}>
+              <SubItem to="/assetForm" label="Add Asset" />
+              <SubItem to="/allocate-form" label="Allocate Asset" />
+              <SubItem to="/assets-list" label="Asset List" />
+              <SubItem to="/allocate-list" label="Allocate Assets" />
+              <SubItem to="/dispose-list" label="Disposed Assets" />
+            </div>
+          )}
         </div>
 
-        {user && (
-          <div style={styles.navContainer}>
-            <Link to="/" style={styles.link}>
-              Dashboard
-            </Link>
-            
-            {/* Assets Dropdown */}
-            <div style={styles.dropdown}>
-              <button 
-                onClick={toggleAssetsDropdown}
-                style={styles.dropdownBtn}
-              >
-                Assets
-                <span style={styles.dropdownArrow}>
-                  {isAssetsOpen ? " ▲" : " ▼"}
-                </span>
-              </button>
-              
-              {isAssetsOpen && (
-                <div style={styles.dropdownContent}>
-                  <Link to="/assetForm" style={styles.dropdownLink}>
-                    ➤ Add Asset
-                  </Link>
-                  <Link to="/allocate-form" style={styles.dropdownLink}>
-                    ➤ Allocate Asset
-                  </Link>
-                  <Link to="/req-asset" style={styles.dropdownLink}>
-                    ➤ Request Asset
-                  </Link>
-                  <Link to="/allocate-list" style={styles.dropdownLink}>
-                    ➤ Allocation List
-                  </Link>
-                  <Link to="/assets-list" style={styles.dropdownLink}>
-                    ➤ Asset List
-                  </Link>
-                  <Link to="/dispose-list" style={styles.dropdownLink}>
-                    ➤ Disposed Assets
-                  </Link>
-                </div>
-              )}
+        {/* Manage */}
+        {user?.role === "SUPER_ADMIN" && (
+          <div>
+            <div style={styles.menuItem} onClick={() => toggleMenu("manage")}>
+              <span style={styles.icon}><FaUsers /></span>
+              Manage
+              <FaChevronDown style={styles.arrow} />
             </div>
-            
-            {/* Manage Dropdown - Only for SUPER_ADMIN */}
-            {user.role === "SUPER_ADMIN" && (
-              <div style={styles.dropdown}>
-                <button 
-                  onClick={toggleManageDropdown}
-                  style={styles.dropdownBtn}
-                >
-                  Manage
-                  <span style={styles.dropdownArrow}>
-                    {isManageOpen ? " ▲" : " ▼"}
-                  </span>
-                </button>
-                
-                {isManageOpen && (
-                  <div style={styles.dropdownContent}>
-                    <Link to="/rolemanagement" style={styles.dropdownLink}>
-                      ➤ Role Management
-                    </Link>
-                    <Link to="/permissions" style={styles.dropdownLink}>
-                      ➤ Permissions Management
-                    </Link>
-                    <Link to="/register" style={styles.dropdownLink}>
-                      ➤ User Register
-                    </Link>
-                    <Link to="/reports" style={styles.dropdownLink}>
-                      ➤ Reports
-                    </Link>
-                  </div>
-                )}
+
+            {openMenu === "manage" && (
+              <div style={styles.subMenu}>
+                <SubItem to="/register" label="User Register" />
+                <SubItem to="/rolemanagement" label="Roles" />
+                <SubItem to="/permissions" label="Permissions" />
               </div>
             )}
-            
-            <div style={styles.userInfo}>
-              <div style={styles.userDetails}>
-                <span style={styles.userName}>{user.user_name}</span>
-                <span style={styles.userRole}>({user.role})</span>
-              </div>
-              <button onClick={handleLogout} style={styles.logoutBtn}>
-                Logout
-              </button>
-            </div>
           </div>
         )}
       </div>
-    </>
+
+      {/* User */}
+      <div style={styles.userSection}>
+        <div>
+          <div style={styles.userName}>{user?.user_name}</div>
+          <div style={styles.userRole}>{user?.role}</div>
+        </div>
+
+        <button onClick={handleLogout} style={styles.logout}>
+          <FaSignOutAlt />
+        </button>
+      </div>
+    </div>
   );
 };
 
+const NavItem = ({ to, icon, label }) => (
+  <Link to={to} style={styles.menuItem}>
+    <span style={styles.icon}>{icon}</span>
+    {label}
+  </Link>
+);
+
+const SubItem = ({ to, label }) => (
+  <Link to={to} style={styles.subItem}>
+    {label}
+  </Link>
+);
+
 const styles = {
   sidebar: {
-    width: "260px",
-    backgroundColor: "#2c3e50",
+    width: "250px",
     height: "100vh",
+    background: "#020930e3",
+    borderRight: "1px solid #e5e7eb",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
     position: "fixed",
-    top: 0,
-    left: 0,
-    color: "white",
-    display: "flex",
-    flexDirection: "column",
-    boxShadow: "2px 0 5px rgba(0,0,0,0.1)",
-    overflowY: "auto",
-    zIndex: 1000,
+    padding: "20px 10px",
   },
-  logo: {
-    padding: "20px",
-    borderBottom: "1px solid #465c6f",
-    marginBottom: "20px",
+
+  logoContainer: {
     textAlign: "center",
+    marginBottom: "20px",
   },
-  logoLink: {
-    color: "#ecf0f1",
-    textDecoration: "none",
-    fontSize: "1.2rem",
-    fontWeight: "bold",
-    transition: "color 0.3s",
-    display: "block",
-    ":hover": {
-      color: "#3498db",
-    },
+
+  logo: {
+    width: "150px",
+    marginBottom: "10px",
   },
-  navContainer: {
+
+  title: {
+    fontSize: "16px",
+    fontWeight: "700",
+    margin: 0,
+  },
+
+  subtitle: {
+    fontSize: "12px",
+    color: "#6b7280",
+  },
+
+  menu: {
     flex: 1,
+  },
+
+  menuItem: {
     display: "flex",
-    flexDirection: "column",
-    padding: "0 15px",
-  },
-  link: {
-    color: "#ecf0f1",
+    alignItems: "center",
+    gap: "10px",
+    padding: "10px 12px",
+    borderRadius: "8px",
+    color: "#ffffffff",
     textDecoration: "none",
-    padding: "12px 15px",
-    fontSize: "0.95rem",
-    transition: "all 0.3s",
-    borderRadius: "6px",
+    cursor: "pointer",
+    fontSize: "14px",
     marginBottom: "5px",
+  },
+
+  icon: {
+    fontSize: "16px",
+  },
+
+  arrow: {
+    marginLeft: "auto",
+    fontSize: "12px",
+  },
+
+  subMenu: {
+    marginLeft: "30px",
+    marginTop: "5px",
+  },
+
+  subItem: {
     display: "block",
-    cursor: "pointer",
-    ":hover": {
-      backgroundColor: "#34495e",
-      color: "#3498db",
-      paddingLeft: "20px",
-    },
-  },
-  dropdown: {
-    marginBottom: "5px",
-    width: "100%",
-  },
-  dropdownBtn: {
-    backgroundColor: "transparent",
-    color: "#ecf0f1",
-    border: "none",
-    padding: "12px 15px",
-    fontSize: "0.95rem",
-    cursor: "pointer",
-    transition: "all 0.3s",
-    fontFamily: "inherit",
-    width: "100%",
-    textAlign: "left",
+    padding: "8px",
+    fontSize: "13px",
+    color: "#ffffffff",
+    textDecoration: "none",
     borderRadius: "6px",
+  },
+
+  userSection: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    ":hover": {
-      backgroundColor: "#34495e",
-      color: "#3498db",
-    },
+    padding: "10px",
+    borderTop: "1px solid #e5e7eb",
   },
-  dropdownArrow: {
-    fontSize: "0.7rem",
-    marginLeft: "8px",
-  },
-  dropdownContent: {
-    backgroundColor: "#34495e",
-    marginLeft: "15px",
-    marginTop: "5px",
-    marginBottom: "5px",
-    borderRadius: "6px",
-    overflow: "hidden",
-    animation: "slideDown 0.2s ease-in-out",
-  },
-  dropdownLink: {
-    color: "#ecf0f1",
-    padding: "10px 15px 10px 30px",
-    textDecoration: "none",
-    display: "block",
-    fontSize: "0.9rem",
-    transition: "all 0.3s",
-    cursor: "pointer",
-    borderLeft: "3px solid transparent",
-    ":hover": {
-      backgroundColor: "#2c3e50",
-      color: "#3498db",
-      borderLeftColor: "#3498db",
-      paddingLeft: "35px",
-    },
-  },
-  userInfo: {
-    marginTop: "auto",
-    padding: "20px 15px",
-    borderTop: "1px solid #465c6f",
-    marginBottom: "20px",
-  },
-  userDetails: {
-    marginBottom: "12px",
-    textAlign: "center",
-  },
+
   userName: {
-    color: "#3498db",
-    fontWeight: "bold",
-    fontSize: "0.95rem",
-    display: "block",
-    marginBottom: "4px",
+    fontSize: "14px",
+    fontWeight: "600",
   },
+
   userRole: {
-    color: "#95a5a6",
-    fontSize: "0.85rem",
-    display: "block",
+    fontSize: "12px",
+    color: "#9ca3af",
   },
-  logoutBtn: {
-    backgroundColor: "#e74c3c",
-    color: "white",
+
+  logout: {
+    background: "#ef4444",
     border: "none",
-    padding: "8px 16px",
+    color: "white",
+    padding: "8px",
     borderRadius: "6px",
     cursor: "pointer",
-    fontSize: "0.9rem",
-    transition: "all 0.3s",
-    width: "100%",
-    fontWeight: "bold",
-    ":hover": {
-      backgroundColor: "#c0392b",
-      transform: "translateY(-1px)",
-    },
   },
 };
-
-// Add CSS animation keyframes
-const globalStyles = `
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Custom scrollbar for sidebar */
-.sidebar::-webkit-scrollbar {
-  width: 8px;
-}
-
-.sidebar::-webkit-scrollbar-track {
-  background: #2c3e50;
-}
-
-.sidebar::-webkit-scrollbar-thumb {
-  background: #465c6f;
-  border-radius: 4px;
-}
-
-.sidebar::-webkit-scrollbar-thumb:hover {
-  background: #3498db;
-}
-`;
 
 export default NavBar;

@@ -4,9 +4,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { 
-  FaBoxes, FaUserCheck, FaCheckCircle, FaExchangeAlt,
-  FaLaptop, FaPrint, FaMicrochip, FaBox, FaTrash,
-  FaPlus, FaShare, FaList, FaChartLine, FaEye, FaHome
+  FaBoxes, FaUserCheck, FaCheckCircle, FaTrash,
 } from 'react-icons/fa';
 
 const Dashboard = () => {
