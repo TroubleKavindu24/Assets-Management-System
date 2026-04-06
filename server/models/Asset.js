@@ -12,9 +12,6 @@ const Asset = sequelize.define("Asset", {
     type: DataTypes.STRING(100),
     allowNull: false,
     unique: true,
-    validate: {
-      notEmpty: true,
-    },
   },
   asset_type: {
     type: DataTypes.ENUM("Laptop", "Machine", "Printer", "Other"),
@@ -27,6 +24,22 @@ const Asset = sequelize.define("Asset", {
   os: {
     type: DataTypes.ENUM("Windows 10", "Windows 11", "macOS", "N/A"),
     defaultValue: "N/A",
+  },
+  ram_capacity: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+  },
+  hard_drive: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+  },
+  processor: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+  },
+  warranty_period: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
   },
   purchase_date: {
     type: DataTypes.DATE,

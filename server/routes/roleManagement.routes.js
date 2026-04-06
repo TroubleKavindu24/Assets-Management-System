@@ -28,7 +28,7 @@ router.post("/users/:userId/deactivate", roleManagementController.deactivateUser
 router.post("/users/:userId/reactivate", roleManagementController.reactivateUser);
 
 // Update user department
-// router.put("/users/:userId/department", roleManagementController.updateDepartment);
+router.put("/users/:userId/department", roleManagementController.updateDepartment);
 
 // Bulk role update (sensitive operation)
 router.post("/users/bulk-update", roleManagementController.bulkRoleUpdate);

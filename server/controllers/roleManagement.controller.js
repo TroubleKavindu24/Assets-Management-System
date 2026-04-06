@@ -308,6 +308,86 @@ exports.reactivateUser = async (req, res) => {
   }
 };
 
+// Update user department
+exports.updateDepartment = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { department_name, password } = req.body;
+
+    // Validate required fields
+    if (!department_name) {
+      return res.status(400).json({
+        success: false,
+        message: "Department name is required"
+      });
+    }
+
+    // Verify SUPER_ADMIN password
+    const superAdmin = await User.findByPk(req.user.user_id);
+    if (superAdmin.password !== password) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid SUPER_ADMIN password"
+      });
+    }
+
+    // Find the user
+    const user = await User.findByPk(userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    // Prevent updating SUPER_ADMIN department
+    if (user.role === 'SUPER_ADMIN') {
+      return res.status(403).json({
+        success: false,
+        message: "Cannot update SUPER_ADMIN department"
+      });
+    }
+
+    // List of valid departments (based on your ENUM in User model)
+    const validDepartments = [
+      "IT", "Finance", "Legal", "Treasury", 
+      "Gold Loan", "Fixed Deposit", "N/A"
+    ];
+
+    // Validate department name
+    if (!validDepartments.includes(department_name)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid department. Valid departments: ${validDepartments.join(", ")}`
+      });
+    }
+
+    // Update department
+    await user.update({
+      department_name: department_name
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Department updated successfully",
+      data: {
+        user_id: user.user_id,
+        user_name: user.user_name,
+        department_name: user.department_name,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error("Error updating department:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update department",
+      error: error.message
+    });
+  }
+};
+
 // Bulk role update
 exports.bulkRoleUpdate = async (req, res) => {
   try {
@@ -395,13 +475,26 @@ exports.getRoleChangeStats = async (req, res) => {
     
     const inactiveUsers = await User.count({ where: { is_active: false } });
 
+    // Get department distribution
+    const departmentStats = await User.findAll({
+      where: {
+        role: { [Op.ne]: 'SUPER_ADMIN' }
+      },
+      attributes: [
+        'department_name',
+        [User.sequelize.fn('COUNT', User.sequelize.col('user_id')), 'count']
+      ],
+      group: ['department_name']
+    });
+
     res.status(200).json({
       success: true,
       message: "Statistics fetched successfully",
       data: {
         total_users: totalUsers,
         active_users: activeUsers,
-        inactive_users: inactiveUsers
+        inactive_users: inactiveUsers,
+        department_distribution: departmentStats
       }
     });
   } catch (error) {
