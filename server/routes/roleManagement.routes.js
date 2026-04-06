@@ -1,39 +1,39 @@
 const express = require("express");
 const router = express.Router();
 const roleManagementController = require("../controllers/roleManagement.controller");
-const { verifyToken, allowSuperAdmin, logUserAction } = require("../middlewares/authMiddleware");
+const { roleManagementAuth, sensitiveOperationLimit } = require("../middlewares/authMiddleware");
 
-// All routes require authentication and SUPER_ADMIN role
-router.use(verifyToken);
-router.use(allowSuperAdmin);
+// All routes use the combined roleManagementAuth middleware
+router.use(roleManagementAuth);
 
-// Optional: Add logging for all role management actions
-router.use(logUserAction("ROLE_MANAGEMENT"));
+// Apply rate limiting for sensitive operations
+router.use(sensitiveOperationLimit(10, 60000));
 
-// Get all manageable users (ADMIN and STAFF) with optional filters
+// Get all users (ADMIN and STAFF)
 router.get("/users", roleManagementController.getAllManageableUsers);
 
 // Get user by ID
 router.get("/users/:userId", roleManagementController.getUserById);
 
-// Promote STAFF to ADMIN
+// Promote STAFF to ADMIN (sensitive operation)
 router.put("/users/:userId/promote", roleManagementController.promoteToAdmin);
 
-// Demote ADMIN to STAFF
+// Demote ADMIN to STAFF (sensitive operation)
 router.put("/users/:userId/demote", roleManagementController.demoteToStaff);
 
-// Remove user (ADMIN or STAFF) - soft delete
-router.delete("/users/:userId", roleManagementController.removeUser);
+// Deactivate user (sensitive operation)
+router.post("/users/:userId/deactivate", roleManagementController.deactivateUser);
 
-// Reactivate a deactivated user
+// Reactivate user (sensitive operation)
 router.post("/users/:userId/reactivate", roleManagementController.reactivateUser);
 
-router.post("/users/:userId/deactivateUser", roleManagementController.deactivateUser);
+// Update user department
+// router.put("/users/:userId/department", roleManagementController.updateDepartment);
 
-// Bulk role update
+// Bulk role update (sensitive operation)
 router.post("/users/bulk-update", roleManagementController.bulkRoleUpdate);
 
-// Get role statistics
+// Get statistics
 router.get("/stats", roleManagementController.getRoleChangeStats);
 
 module.exports = router;

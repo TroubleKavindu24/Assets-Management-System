@@ -28,7 +28,10 @@ const NavBar = () => {
     navigate("/login");
   };
 
-  if (location.pathname === "/login") return null;
+  // Don't show navbar on login page
+  if (location.pathname === "/login") {
+    return null;
+  }
 
   const toggleMenu = (menu) => {
     setOpenMenu(openMenu === menu ? null : menu);
@@ -138,6 +141,8 @@ const styles = {
     flexDirection: "column",
     justifyContent: "space-between",
     position: "fixed",
+    top: 0,
+    left: 0,
     padding: "20px 10px",
     zIndex: 1000,
     boxShadow: "2px 0 10px rgba(0,0,0,0.1)",

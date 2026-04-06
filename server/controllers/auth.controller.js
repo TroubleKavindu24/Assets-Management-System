@@ -6,23 +6,35 @@ exports.login = async (req, res) => {
     const { user_name, password } = req.body;
 
     if (!user_name || !password) {
-      return res.status(400).json({ message: "Username and password required" });
+      return res.status(400).json({ 
+        success: false,
+        message: "Username and password required" 
+      });
     }
 
     const user = await User.findOne({ where: { user_name } });
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ 
+        success: false,
+        message: "User not found" 
+      });
     }
     
     // Check if user is active
     if (user.is_active === false) {
-      return res.status(401).json({ message: "Account is deactivated. Please contact SUPER_ADMIN." });
+      return res.status(401).json({ 
+        success: false,
+        message: "Account is deactivated. Please contact SUPER_ADMIN." 
+      });
     }
 
     // Plain password check
     if (user.password !== password) {
-      return res.status(401).json({ message: "Invalid password" });
+      return res.status(401).json({ 
+        success: false,
+        message: "Invalid password" 
+      });
     }
 
     // Generate JWT
@@ -38,6 +50,7 @@ exports.login = async (req, res) => {
     );
 
     res.json({
+      success: true,
       message: "Login successful",
       token,
       user: {
@@ -51,6 +64,7 @@ exports.login = async (req, res) => {
   } catch (error) {
     console.error("ERROR:", error);
     res.status(500).json({
+      success: false,
       message: "Server error",
       error: error.message,
     });
@@ -66,32 +80,45 @@ exports.register = async (req, res) => {
     const authUser = req.user;
 
     if (!user_name || !password || !role || !department_name) {
-      return res.status(400).json({ message: "All fields required" });
+      return res.status(400).json({ 
+        success: false,
+        message: "All fields required" 
+      });
     }
 
     // Check permissions based on role
     if (authUser.role === "SUPER_ADMIN") {
-      // SUPER_ADMIN can create ADMIN, manager, user
       const allowedRoles = ["ADMIN", "manager", "user"];
       if (!allowedRoles.includes(role)) {
-        return res.status(400).json({ message: "Invalid role for SUPER_ADMIN to create" });
+        return res.status(400).json({ 
+          success: false,
+          message: "Invalid role for SUPER_ADMIN to create" 
+        });
       }
     } 
     else if (authUser.role === "ADMIN") {
-      // ADMIN can only create manager and user
       const allowedRoles = ["manager", "user"];
       if (!allowedRoles.includes(role)) {
-        return res.status(403).json({ message: "ADMIN can only create manager or user roles" });
+        return res.status(403).json({ 
+          success: false,
+          message: "ADMIN can only create manager or user roles" 
+        });
       }
     }
     else {
-      return res.status(403).json({ message: "You don't have permission to register users" });
+      return res.status(403).json({ 
+        success: false,
+        message: "You don't have permission to register users" 
+      });
     }
 
     // Check existing user
     const existingUser = await User.findOne({ where: { user_name } });
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({ 
+        success: false,
+        message: "User already exists" 
+      });
     }
 
     const newUser = await User.create({
@@ -103,6 +130,7 @@ exports.register = async (req, res) => {
     });
 
     res.status(201).json({
+      success: true,
       message: "User registered successfully",
       user: {
         user_id: newUser.user_id,
@@ -113,6 +141,10 @@ exports.register = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: "Server error", 
+      error: error.message 
+    });
   }
 };

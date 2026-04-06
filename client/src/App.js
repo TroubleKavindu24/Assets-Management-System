@@ -1,10 +1,11 @@
 import React, { useContext } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { AuthContext } from "./context/AuthContext";
 import { AuthProvider } from "./context/AuthContext";
 
 import NavBar from "./components/NavBar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Footer from "./components/Footer";
 
 import Dashboard from "./pages/Dashboard/Dashboard";
 import AddAssetForm from "./pages/AddAssets/AddAssetForm";
@@ -20,6 +21,13 @@ import DisposePage from "./pages/Dispose/DisposedAssets";
 
 const AppContent = () => {
   const { loading } = useContext(AuthContext);
+  const location = useLocation();
+  
+  // Check if current page is login page
+  const isLoginPage = location.pathname === "/login";
+  
+  // Don't show footer on login page
+  const showFooter = !isLoginPage;
 
   if (loading) {
     return (
@@ -31,12 +39,16 @@ const AppContent = () => {
   }
 
   return (
-    <Router>
+    <div style={styles.appWrapper}>
       <NavBar />
-      <div style={styles.mainContent}>
+      <div style={{
+        ...styles.mainContent,
+        marginLeft: isLoginPage ? "0" : "260px",
+      }}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           
+          {/* Protected Routes */}
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/assetForm" element={<ProtectedRoute><AddAssetForm /></ProtectedRoute>} />
           <Route path="/allocate-form" element={<ProtectedRoute><AllocateAssetForm /></ProtectedRoute>} />
@@ -49,19 +61,33 @@ const AppContent = () => {
           <Route path="/permissions" element={<ProtectedRoute><PermissionManagement /></ProtectedRoute>} />
         </Routes>
       </div>
-    </Router>
+      {showFooter && <Footer />}
+    </div>
   );
 };
 
 const App = () => {
   return (
     <AuthProvider>
-      <AppContent />
+      <Router>
+        <AppContent />
+      </Router>
     </AuthProvider>
   );
 };
 
 const styles = {
+  appWrapper: {
+    display: "flex",
+    flexDirection: "column",
+    minHeight: "100vh",
+  },
+  mainContent: {
+    flex: 1,
+    padding: "20px",
+    backgroundColor: "#f5f5f5",
+    transition: "margin-left 0.3s ease",
+  },
   loadingContainer: {
     display: "flex",
     flexDirection: "column",
@@ -76,12 +102,6 @@ const styles = {
     width: "40px",
     height: "40px",
     animation: "spin 1s linear infinite",
-  },
-  mainContent: {
-    marginLeft: "260px",
-    padding: "20px",
-    minHeight: "100vh",
-    backgroundColor: "#f5f5f5",
   },
 };
 
