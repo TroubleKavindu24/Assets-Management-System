@@ -1,12 +1,11 @@
-// models/DisposedAsset.js
 const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/db");
 
 const DisposedAsset = sequelize.define("DisposedAsset", {
   disposed_id: {
     type: DataTypes.INTEGER,
-    primaryKey: true,
     autoIncrement: true,
+    primaryKey: true,
   },
   asset_id: {
     type: DataTypes.INTEGER,
@@ -21,16 +20,19 @@ const DisposedAsset = sequelize.define("DisposedAsset", {
     allowNull: false,
   },
   brand: {
-    type: DataTypes.STRING(50),
+    type: DataTypes.STRING(100),
+    allowNull: true,
   },
   os: {
-    type: DataTypes.STRING(50),
+    type: DataTypes.STRING(100),
+    allowNull: true,
   },
   purchase_date: {
     type: DataTypes.DATE,
+    allowNull: true,
   },
   disposed_location: {
-    type: DataTypes.ENUM("Boralla", "Location2", "Location3"),
+    type: DataTypes.STRING(100),
     allowNull: false,
   },
   disposed_by: {
@@ -43,11 +45,11 @@ const DisposedAsset = sequelize.define("DisposedAsset", {
   },
   disposed_reason: {
     type: DataTypes.TEXT,
+    allowNull: true,
   },
 }, {
   tableName: "disposed_assets",
-  timestamps: true,
-  underscored: true,
+  timestamps: false,
 });
 
 module.exports = DisposedAsset;

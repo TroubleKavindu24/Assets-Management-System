@@ -1,5 +1,4 @@
 // routes/permissionRoutes.js
-
 const express = require("express");
 const router = express.Router();
 const permissionController = require("../controllers/permission.controller");
@@ -24,10 +23,10 @@ router.get("/users/:userId/permissions/history", permissionController.getPermiss
 // Get user's complete permission details
 router.get("/users/:userId/permissions", permissionController.getUserPermissions);
 
-// Grant single permission to user (requires password)
+// Grant single permission to STAFF user (requires password)
 router.post("/users/:userId/permissions/:permissionType/grant", permissionController.grantPermission);
 
-// Revoke permission from user (requires password)
+// Revoke permission from STAFF user (requires password)
 router.delete("/users/:userId/permissions/:permissionType/revoke", permissionController.revokePermission);
 
 // Grant multiple permissions at once (requires password)

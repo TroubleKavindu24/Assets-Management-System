@@ -1,5 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const { sequelize } = require("../config/db");
+const { Op } = require("sequelize");
 
 exports.login = async (req, res) => {
   try {
@@ -71,7 +73,7 @@ exports.login = async (req, res) => {
   }
 };
 
-// Register User (SUPER_ADMIN or ADMIN)
+// 📝 REGISTER (ONLY SUPER_ADMIN)
 exports.register = async (req, res) => {
   try {
     const { user_name, password, role, department_name } = req.body;
@@ -86,30 +88,15 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Check permissions based on role
-    if (authUser.role === "SUPER_ADMIN") {
-      const allowedRoles = ["ADMIN", "manager", "user"];
-      if (!allowedRoles.includes(role)) {
-        return res.status(400).json({ 
-          success: false,
-          message: "Invalid role for SUPER_ADMIN to create" 
-        });
-      }
-    } 
-    else if (authUser.role === "ADMIN") {
-      const allowedRoles = ["manager", "user"];
-      if (!allowedRoles.includes(role)) {
-        return res.status(403).json({ 
-          success: false,
-          message: "ADMIN can only create manager or user roles" 
-        });
-      }
+    // ❌ Prevent creating SUPER_ADMIN
+    if (role === "SUPER_ADMIN") {
+      return res.status(403).json({ message: "Cannot create SUPER_ADMIN via API" });
     }
-    else {
-      return res.status(403).json({ 
-        success: false,
-        message: "You don't have permission to register users" 
-      });
+
+    // ✅ Allow only ADMIN & STAFF
+    const allowedRoles = ["ADMIN", "STAFF"];
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({ message: "Invalid role" });
     }
 
     // Check existing user
@@ -126,25 +113,15 @@ exports.register = async (req, res) => {
       password,
       role,
       department_name,
-      is_active: true,
     });
 
     res.status(201).json({
       success: true,
       message: "User registered successfully",
-      user: {
-        user_id: newUser.user_id,
-        user_name: newUser.user_name,
-        role: newUser.role,
-        department_name: newUser.department_name,
-      },
+      user: newUser,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ 
-      success: false,
-      message: "Server error", 
-      error: error.message 
-    });
+    res.status(500).json({ message: "Server error", error });
   }
 };
+
