@@ -20,12 +20,12 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: "Account is deactivated. Please contact SUPER_ADMIN." });
     }
 
-    // Plain password check (as per your requirement)
+    // Plain password check
     if (user.password !== password) {
       return res.status(401).json({ message: "Invalid password" });
     }
 
-    // Generate JWT with more user information
+    // Generate JWT
     const token = jwt.sign(
       {
         user_id: user.user_id,
@@ -57,24 +57,35 @@ exports.login = async (req, res) => {
   }
 };
 
-// 📝 REGISTER (ONLY SUPER_ADMIN)
+// Register User (SUPER_ADMIN or ADMIN)
 exports.register = async (req, res) => {
   try {
     const { user_name, password, role, department_name } = req.body;
+    
+    // Get the authenticated user from token
+    const authUser = req.user;
 
     if (!user_name || !password || !role || !department_name) {
       return res.status(400).json({ message: "All fields required" });
     }
 
-    // ❌ Prevent creating SUPER_ADMIN
-    if (role === "SUPER_ADMIN") {
-      return res.status(403).json({ message: "Cannot create SUPER_ADMIN via API" });
+    // Check permissions based on role
+    if (authUser.role === "SUPER_ADMIN") {
+      // SUPER_ADMIN can create ADMIN, manager, user
+      const allowedRoles = ["ADMIN", "manager", "user"];
+      if (!allowedRoles.includes(role)) {
+        return res.status(400).json({ message: "Invalid role for SUPER_ADMIN to create" });
+      }
+    } 
+    else if (authUser.role === "ADMIN") {
+      // ADMIN can only create manager and user
+      const allowedRoles = ["manager", "user"];
+      if (!allowedRoles.includes(role)) {
+        return res.status(403).json({ message: "ADMIN can only create manager or user roles" });
+      }
     }
-
-    // ✅ Allow only ADMIN & STAFF
-    const allowedRoles = ["ADMIN", "STAFF"];
-    if (!allowedRoles.includes(role)) {
-      return res.status(400).json({ message: "Invalid role" });
+    else {
+      return res.status(403).json({ message: "You don't have permission to register users" });
     }
 
     // Check existing user
@@ -85,17 +96,23 @@ exports.register = async (req, res) => {
 
     const newUser = await User.create({
       user_name,
-      password, // plain text (your requirement)
+      password,
       role,
       department_name,
+      is_active: true,
     });
 
     res.status(201).json({
       message: "User registered successfully",
-      user: newUser,
+      user: {
+        user_id: newUser.user_id,
+        user_name: newUser.user_name,
+        role: newUser.role,
+        department_name: newUser.department_name,
+      },
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error });
+    console.error(error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-

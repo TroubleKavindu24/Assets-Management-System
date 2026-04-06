@@ -12,15 +12,11 @@ import AllocateAssetForm from "./pages/Allocation/AllocateAssetForm";
 import AllocateList from "./pages/Allocation/AllocationList";
 import AssetRequest from "./pages/AssetsList/AssetRequestForm";
 import AssetsList from "./pages/AssetsList/AssetsList";
-
 import RoleManagement from "./pages/Role_management/roleManagement";
-
 import LoginPage from "./pages/Auth/LoginPage";
 import RegisterPage from "./pages/Auth/RegisterPage";
 import PermissionManagement from "./pages/PermissionManagement/PermissionManagement";
-
 import DisposePage from "./pages/Dispose/DisposedAssets";
-import Footer from "./components/Footer";
 
 const AppContent = () => {
   const { loading } = useContext(AuthContext);
@@ -40,90 +36,18 @@ const AppContent = () => {
       <div style={styles.mainContent}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-
-          {/* Protected Routes */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/assetForm"
-            element={
-              <ProtectedRoute>
-                <AddAssetForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/allocate-form"
-            element={
-              <ProtectedRoute>
-                <AllocateAssetForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/allocate-list"
-            element={
-              <ProtectedRoute>
-                <AllocateList />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dispose-list"
-            element={
-              <ProtectedRoute>
-                <DisposePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/req-asset"
-            element={
-              <ProtectedRoute>
-                <AssetRequest />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/assets-list"
-            element={
-              <ProtectedRoute>
-                <AssetsList />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/register"
-            element={
-              <ProtectedRoute>
-                <RegisterPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/rolemanagement"
-            element={
-              <ProtectedRoute>
-                <RoleManagement />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/permissions"
-            element={
-              <ProtectedRoute>
-                <PermissionManagement />
-              </ProtectedRoute>
-            }
-          />
+          
+          <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/assetForm" element={<ProtectedRoute><AddAssetForm /></ProtectedRoute>} />
+          <Route path="/allocate-form" element={<ProtectedRoute><AllocateAssetForm /></ProtectedRoute>} />
+          <Route path="/allocate-list" element={<ProtectedRoute><AllocateList /></ProtectedRoute>} />
+          <Route path="/dispose-list" element={<ProtectedRoute><DisposePage /></ProtectedRoute>} />
+          <Route path="/req-asset" element={<ProtectedRoute><AssetRequest /></ProtectedRoute>} />
+          <Route path="/assets-list" element={<ProtectedRoute><AssetsList /></ProtectedRoute>} />
+          <Route path="/register" element={<ProtectedRoute><RegisterPage /></ProtectedRoute>} />
+          <Route path="/rolemanagement" element={<ProtectedRoute><RoleManagement /></ProtectedRoute>} />
+          <Route path="/permissions" element={<ProtectedRoute><PermissionManagement /></ProtectedRoute>} />
         </Routes>
-        <Footer />
       </div>
     </Router>
   );
@@ -154,20 +78,11 @@ const styles = {
     animation: "spin 1s linear infinite",
   },
   mainContent: {
-    marginLeft: "260px", // Same width as sidebar
+    marginLeft: "260px",
     padding: "20px",
     minHeight: "100vh",
     backgroundColor: "#f5f5f5",
   },
 };
-
-// Add spin animation for loader
-// const spinStyles = `
-// @keyframes spin {
-//   0% { transform: rotate(0deg); }
-//   100% { transform: rotate(360deg); }
-// }
-// `
-;
 
 export default App;

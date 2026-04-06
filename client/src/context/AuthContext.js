@@ -7,27 +7,28 @@ const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // On app load, check localStorage token
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
       try {
         const decoded = JSON.parse(atob(token.split(".")[1]));
-        // Get user data from localStorage or fetch from API
         const userRole = localStorage.getItem("role");
         const userName = localStorage.getItem("userName");
+        const department = localStorage.getItem("department");
         setUser({ 
           ...decoded, 
           token, 
           role: userRole,
-          user_name: userName 
+          user_name: userName,
+          department_name: department
         });
       } catch (error) {
         console.error("Error parsing token:", error);
         localStorage.removeItem("token");
         localStorage.removeItem("role");
         localStorage.removeItem("userName");
+        localStorage.removeItem("department");
       }
     }
     setLoading(false);
@@ -42,6 +43,7 @@ const AuthProvider = ({ children }) => {
     localStorage.setItem("token", data.token);
     localStorage.setItem("role", data.user.role);
     localStorage.setItem("userName", data.user.user_name);
+    localStorage.setItem("department", data.user.department_name);
     axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
     setUser({ ...data.user, token: data.token });
   };
@@ -50,6 +52,7 @@ const AuthProvider = ({ children }) => {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("userName");
+    localStorage.removeItem("department");
     delete axios.defaults.headers.common["Authorization"];
     setUser(null);
   };

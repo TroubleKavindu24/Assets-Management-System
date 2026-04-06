@@ -7,7 +7,7 @@ const RegisterPage = () => {
   const [form, setForm] = useState({
     user_name: "",
     password: "",
-    role: "ADMIN",
+    role: "user",
     department_name: "",
   });
   const [message, setMessage] = useState("");
@@ -16,11 +16,28 @@ const RegisterPage = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // Check if user is SUPER_ADMIN, if not redirect
-  if (user && user.role !== "SUPER_ADMIN") {
+  const canRegister = user && (user.role === "ADMIN" || user.role === "SUPER_ADMIN");
+  
+  if (!canRegister) {
     navigate("/");
     return null;
   }
+
+  const getAvailableRoles = () => {
+    if (user.role === "SUPER_ADMIN") {
+      return [
+        { value: "ADMIN", label: "ADMIN" },
+        { value: "manager", label: "Manager" },
+        { value: "user", label: "User" },
+      ];
+    } else if (user.role === "ADMIN") {
+      return [
+        { value: "manager", label: "Manager" },
+        { value: "user", label: "User" },
+      ];
+    }
+    return [];
+  };
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -33,15 +50,21 @@ const RegisterPage = () => {
     setMessage("");
 
     try {
+      const token = localStorage.getItem("token");
       const res = await axios.post(
         "http://localhost:5005/api/auth/register",
-        form
+        form,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       setMessage(res.data.message);
       setForm({
         user_name: "",
         password: "",
-        role: "ADMIN",
+        role: user.role === "SUPER_ADMIN" ? "ADMIN" : "manager",
         department_name: "",
       });
       setLoading(false);
@@ -55,10 +78,13 @@ const RegisterPage = () => {
     <div style={styles.container}>
       <div style={styles.card}>
         <h2 style={styles.title}>Register New User</h2>
+        <p style={styles.subtitle}>
+          Logged in as: <strong>{user.user_name}</strong> ({user.role})
+        </p>
         
         <form onSubmit={handleRegister}>
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Username</label>
+            <label style={styles.label}>Username *</label>
             <input
               type="text"
               name="user_name"
@@ -71,7 +97,7 @@ const RegisterPage = () => {
           </div>
           
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Password</label>
+            <label style={styles.label}>Password *</label>
             <input
               type="password"
               name="password"
@@ -84,29 +110,38 @@ const RegisterPage = () => {
           </div>
           
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Role</label>
+            <label style={styles.label}>Role *</label>
             <select
               name="role"
               value={form.role}
               onChange={handleChange}
               style={styles.select}
             >
-              <option value="ADMIN">ADMIN</option>
-              <option value="STAFF">STAFF</option>
+              {getAvailableRoles().map((role) => (
+                <option key={role.value} value={role.value}>
+                  {role.label}
+                </option>
+              ))}
             </select>
           </div>
           
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Department Name</label>
-            <input
-              type="text"
+            <label style={styles.label}>Department Name *</label>
+            <select
               name="department_name"
-              placeholder="Enter department name"
               value={form.department_name}
               onChange={handleChange}
               required
-              style={styles.input}
-            />
+              style={styles.select}
+            >
+              <option value="">Select Department</option>
+              <option value="IT">IT</option>
+              <option value="Finance">Finance</option>
+              <option value="Legal">Legal</option>
+              <option value="Treasury">Treasury</option>
+              <option value="Gold Loan">Gold Loan</option>
+              <option value="Fixed Deposit">Fixed Deposit</option>
+            </select>
           </div>
           
           <button 

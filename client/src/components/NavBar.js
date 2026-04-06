@@ -6,9 +6,14 @@ import {
   FaHome,
   FaBox,
   FaUsers,
-  FaCog,
   FaChevronDown,
   FaSignOutAlt,
+  FaUserPlus,
+  FaClipboardList,
+  FaPlusCircle,
+  FaExchangeAlt,
+  FaTrash,
+  FaCog,
 } from "react-icons/fa";
 
 const NavBar = () => {
@@ -29,20 +34,29 @@ const NavBar = () => {
     setOpenMenu(openMenu === menu ? null : menu);
   };
 
+  // Role checks
+  const isSuperAdmin = user?.role === "SUPER_ADMIN";
+  const isAdmin = user?.role === "ADMIN";
+  const isManager = user?.role === "manager";
+  
+  const canRegisterUser = isAdmin || isSuperAdmin;
+  const canManageSystem = isSuperAdmin;
+  const canAddAsset = isAdmin || isSuperAdmin || isManager;
+  const canAllocateAsset = isAdmin || isSuperAdmin || isManager;
+  const canViewDisposed = isAdmin || isSuperAdmin;
+
   return (
     <div style={styles.sidebar}>
       {/* Logo */}
       <div style={styles.logoContainer}>
         <img src={Logo} alt="logo" style={styles.logo} />
-        {/* <h3 style={styles.title}>AssetMaster</h3>
-        <span style={styles.subtitle}>Management System</span> */}
       </div>
 
       {/* Menu */}
       <div style={styles.menu}>
         <NavItem to="/" icon={<FaHome />} label="Dashboard" />
 
-        {/* Assets */}
+        {/* Assets Section */}
         <div>
           <div style={styles.menuItem} onClick={() => toggleMenu("assets")}>
             <span style={styles.icon}><FaBox /></span>
@@ -52,42 +66,46 @@ const NavBar = () => {
 
           {openMenu === "assets" && (
             <div style={styles.subMenu}>
-              <SubItem to="/assetForm" label="Add Asset" />
-              <SubItem to="/allocate-form" label="Allocate Asset" />
-              <SubItem to="/assets-list" label="Asset List" />
-              <SubItem to="/allocate-list" label="Allocate Assets" />
-              <SubItem to="/dispose-list" label="Disposed Assets" />
+              {canAddAsset && <SubItem to="/assetForm" label="Add Asset" icon={<FaPlusCircle />} />}
+              {canAllocateAsset && <SubItem to="/allocate-form" label="Allocate Asset" icon={<FaExchangeAlt />} />}
+              <SubItem to="/assets-list" label="Asset List" icon={<FaClipboardList />} />
+              <SubItem to="/allocate-list" label="Allocation List" icon={<FaExchangeAlt />} />
+              {canViewDisposed && <SubItem to="/dispose-list" label="Disposed Assets" icon={<FaTrash />} />}
             </div>
           )}
         </div>
 
-        {/* Manage */}
-        {user?.role === "SUPER_ADMIN" && (
+        {/* User Registration - ADMIN and SUPER_ADMIN */}
+        {canRegisterUser && (
+          <NavItem to="/register" icon={<FaUserPlus />} label="Register User" />
+        )}
+
+        {/* System Management - SUPER_ADMIN only */}
+        {canManageSystem && (
           <div>
             <div style={styles.menuItem} onClick={() => toggleMenu("manage")}>
-              <span style={styles.icon}><FaUsers /></span>
-              Manage
+              <span style={styles.icon}><FaCog /></span>
+              System Admin
               <FaChevronDown style={styles.arrow} />
             </div>
 
             {openMenu === "manage" && (
               <div style={styles.subMenu}>
-                <SubItem to="/register" label="User Register" />
-                <SubItem to="/rolemanagement" label="Roles" />
-                <SubItem to="/permissions" label="Permissions" />
+                <SubItem to="/rolemanagement" label="Role Management" />
+                <SubItem to="/permissions" label="Permission Management" />
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* User */}
+      {/* User Section */}
       <div style={styles.userSection}>
         <div>
           <div style={styles.userName}>{user?.user_name}</div>
           <div style={styles.userRole}>{user?.role}</div>
+          <div style={styles.userDept}>{user?.department_name}</div>
         </div>
-
         <button onClick={handleLogout} style={styles.logout}>
           <FaSignOutAlt />
         </button>
@@ -103,111 +121,129 @@ const NavItem = ({ to, icon, label }) => (
   </Link>
 );
 
-const SubItem = ({ to, label }) => (
+const SubItem = ({ to, label, icon }) => (
   <Link to={to} style={styles.subItem}>
+    {icon && <span style={styles.subIcon}>{icon}</span>}
     {label}
   </Link>
 );
 
 const styles = {
   sidebar: {
-    width: "250px",
+    width: "260px",
     height: "100vh",
-    background: "#020930e3",
-    borderRight: "1px solid #e5e7eb",
+    background: "linear-gradient(135deg, #020930 0%, #0a1740 100%)",
+    borderRight: "1px solid rgba(255,255,255,0.1)",
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
     position: "fixed",
     padding: "20px 10px",
+    zIndex: 1000,
+    boxShadow: "2px 0 10px rgba(0,0,0,0.1)",
   },
-
   logoContainer: {
     textAlign: "center",
-    marginBottom: "20px",
+    marginBottom: "30px",
+    padding: "10px",
   },
-
   logo: {
-    width: "150px",
+    width: "180px",
     marginBottom: "10px",
   },
-
-  title: {
-    fontSize: "16px",
-    fontWeight: "700",
-    margin: 0,
-  },
-
-  subtitle: {
-    fontSize: "12px",
-    color: "#6b7280",
-  },
-
   menu: {
     flex: 1,
+    overflowY: "auto",
   },
-
   menuItem: {
     display: "flex",
     alignItems: "center",
-    gap: "10px",
-    padding: "10px 12px",
+    gap: "12px",
+    padding: "12px 15px",
     borderRadius: "8px",
-    color: "#ffffffff",
+    color: "#ffffff",
     textDecoration: "none",
     cursor: "pointer",
     fontSize: "14px",
+    fontWeight: "500",
     marginBottom: "5px",
+    transition: "all 0.2s",
+    ":hover": {
+      backgroundColor: "rgba(255,255,255,0.1)",
+    },
   },
-
   icon: {
-    fontSize: "16px",
+    fontSize: "18px",
+    minWidth: "20px",
   },
-
   arrow: {
     marginLeft: "auto",
     fontSize: "12px",
   },
-
   subMenu: {
-    marginLeft: "30px",
+    marginLeft: "35px",
     marginTop: "5px",
+    marginBottom: "10px",
   },
-
   subItem: {
-    display: "block",
-    padding: "8px",
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    padding: "8px 12px",
     fontSize: "13px",
-    color: "#ffffffff",
+    color: "#d1d5db",
     textDecoration: "none",
     borderRadius: "6px",
+    transition: "all 0.2s",
+    marginBottom: "2px",
+    ":hover": {
+      backgroundColor: "rgba(255,255,255,0.08)",
+      color: "#ffffff",
+    },
   },
-
+  subIcon: {
+    fontSize: "12px",
+    minWidth: "16px",
+  },
   userSection: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: "10px",
-    borderTop: "1px solid #e5e7eb",
+    padding: "15px 10px 10px 10px",
+    borderTop: "1px solid rgba(255,255,255,0.1)",
+    marginTop: "10px",
   },
-
   userName: {
     fontSize: "14px",
     fontWeight: "600",
+    color: "#ffffff",
   },
-
   userRole: {
-    fontSize: "12px",
+    fontSize: "11px",
     color: "#9ca3af",
+    textTransform: "uppercase",
+    marginTop: "4px",
   },
-
+  userDept: {
+    fontSize: "10px",
+    color: "#6b7280",
+    marginTop: "2px",
+  },
   logout: {
     background: "#ef4444",
     border: "none",
     color: "white",
-    padding: "8px",
+    padding: "8px 10px",
     borderRadius: "6px",
     cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "all 0.2s",
+    ":hover": {
+      backgroundColor: "#dc2626",
+      transform: "scale(1.05)",
+    },
   },
 };
 

@@ -1,5 +1,4 @@
 import React, { useState, useContext } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 
@@ -18,7 +17,7 @@ const LoginPage = () => {
     
     try {
       await login(userName, password);
-      navigate("/"); // go to dashboard
+      navigate("/");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
       setLoading(false);
@@ -29,6 +28,7 @@ const LoginPage = () => {
     <div style={styles.container}>
       <div style={styles.card}>
         <h2 style={styles.title}>Welcome Back</h2>
+        <p style={styles.subtitle}>Login to Asset Management System</p>
         
         <form onSubmit={handleLogin}>
           <div style={styles.inputGroup}>
