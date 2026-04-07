@@ -165,141 +165,64 @@ exports.getAllAssets = async (req, res) => {
   }
 };
 
-
-exports.getAssetById = async (req, res) => {
+exports.getAvailableAssetsByType = async (req, res) => {
   try {
-    const { id } = req.params;
-    const asset = await Asset.findByPk(id);
-
-    if (!asset) {
-      return res.status(404).json({
-        success: false,
-        message: "Asset not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: asset,
-    });
-  } catch (error) {
-    console.error("Error fetching asset:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error fetching asset",
-      error: error.message,
-    });
-  }
-};
-
-exports.updateAsset = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const {
-      serial_no,
-      asset_type,
-      brand,
-      os,
-      purchase_date,
-      ram_capacity,
-      hard_drive,
-      processor,
-      warranty_period_months,
-      accessories,
-      status,
-    } = req.body;
-
-    const asset = await Asset.findByPk(id);
-
-    if (!asset) {
-      return res.status(404).json({
-        success: false,
-        message: "Asset not found",
-      });
-    }
-
-    // Validation 1: If asset_type is Laptop, accessories required
-    if (asset_type === "Laptop" && !accessories) {
-      return res.status(400).json({
-        success: false,
-        message: "Accessories selection is required for Laptop",
-      });
-    }
-
-    // Validation 2: If asset_type is Desktop PC or Laptop, specs required
-    const requiresSpecs = asset_type === "Desktop PC" || asset_type === "Laptop";
+    const { type } = req.params;
     
-    if (requiresSpecs && (!ram_capacity && !hard_drive && !processor)) {
+    // Validate if type is provided
+    if (!type) {
       return res.status(400).json({
         success: false,
-        message: "Specifications (RAM, Hard Drive, or Processor) are required for Desktop PC or Laptop",
+        message: "Asset type is required",
       });
     }
 
-    // Check duplicate serial number (excluding current asset)
-    if (serial_no && serial_no !== asset.serial_no) {
-      const existingAsset = await Asset.findOne({
-        where: {
-          serial_no,
-          asset_id: { [Op.ne]: id },
-        },
+    // Define valid asset types (from your model ENUM)
+    const validAssetTypes = ["Laptop", "Desktop PC", "Monitor", "Printer", "Other"];
+    
+    // Validate if the type is valid
+    if (!validAssetTypes.includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid asset type. Valid types are: ${validAssetTypes.join(", ")}`,
       });
-      if (existingAsset) {
-        return res.status(400).json({
-          success: false,
-          message: "Asset with this serial number already exists",
-        });
-      }
     }
 
-    // Prepare update data
-    const updateData = {
-      serial_no: serial_no || asset.serial_no,
-      asset_type: asset_type || asset.asset_type,
-      brand: brand || asset.brand,
-      os: os || asset.os,
-      purchase_date: purchase_date || asset.purchase_date,
-      warranty_period_months: warranty_period_months !== undefined ? warranty_period_months : asset.warranty_period_months,
-      status: status || asset.status,
-    };
-
-    // Only include specs if required
-    if (requiresSpecs) {
-      updateData.ram_capacity = ram_capacity !== undefined ? ram_capacity : asset.ram_capacity;
-      updateData.hard_drive = hard_drive !== undefined ? hard_drive : asset.hard_drive;
-      updateData.processor = processor !== undefined ? processor : asset.processor;
-    } else {
-      updateData.ram_capacity = null;
-      updateData.hard_drive = null;
-      updateData.processor = null;
-    }
-
-    // Only include accessories if asset_type is Laptop
-    if (asset_type === "Laptop") {
-      updateData.accessories = accessories !== undefined ? accessories : asset.accessories;
-    } else {
-      updateData.accessories = null;
-    }
-
-    await asset.update(updateData);
-
-    // Fetch updated asset
-    const updatedAsset = await Asset.findByPk(id);
+    // Find all available assets of the specified type
+    const assets = await Asset.findAll({
+      where: {
+        asset_type: type,
+        status: "AVAILABLE",
+      },
+      order: [["createdAt", "DESC"]],
+      attributes: [
+        "asset_id",
+        "serial_no",
+        "asset_type",
+        "brand",
+        "model",
+        "status",
+        "purchase_date",
+        "warranty_end_date"
+      ]
+    });
 
     res.status(200).json({
       success: true,
-      message: "Asset updated successfully",
-      data: updatedAsset,
+      count: assets.length,
+      asset_type: type,
+      data: assets,
     });
   } catch (error) {
-    console.error("Error updating asset:", error);
+    console.error("Error fetching available assets by type:", error);
     res.status(500).json({
       success: false,
-      message: "Error updating asset",
+      message: "Error fetching available assets",
       error: error.message,
     });
   }
 };
+
 
 exports.getAssetsWithExpiringWarranty = async (req, res) => {
   try {

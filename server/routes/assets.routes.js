@@ -10,9 +10,8 @@ router.use(verifyToken);
 // Asset CRUD with permission checks
 router.post("/add-asset", checkPermission("ADD_ASSET"), assetController.add_asset);
 router.get("/assetsList", checkPermission("VIEW_ASSETS_LIST"), assetController.getAllAssets);
-router.get("/assets/:id", assetController.getAssetById);
-router.put("/assets/:id", assetController.updateAsset);
-// router.get("/asset-available/:type", checkPermission("VIEW_ASSETS_LIST"), assetController.getAvailableAssetsByType);
+router.get("/asset-available/:type", checkPermission("VIEW_ASSETS_LIST"), assetController.getAvailableAssetsByType);
+router.get("/serial/:serial_no", checkPermission("VIEW_ASSETS_LIST"), assetController.getAssetDetailsBySerialNo);
 
 // Allocation routes with permission checks
 router.post("/asset-allocation", checkPermission("ALLOCATE_ASSET"), assetController.allocateAsset);
@@ -23,7 +22,6 @@ router.get("/allocations/branch/:branch_id", checkPermission("VIEW_ALLOCATIONS_L
 router.post("/asset-handover", checkPermission("MANAGE_HANDOVER"), assetController.asset_handover);
 
 // Asset details (view only - lower permission)
-router.get("/serial/:serial_no", checkPermission("VIEW_ASSETS_LIST"), assetController.getAssetDetailsBySerialNo);
 router.get("/serial/:serial_no/history", checkPermission("VIEW_ALLOCATIONS_LIST"), assetController.getAllocationHistoryBySerialNo);
 router.get("/allocated-assets", checkPermission("VIEW_ALLOCATIONS_LIST"), assetController.getAllocatedAssets);
 
