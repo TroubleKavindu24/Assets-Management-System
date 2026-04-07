@@ -112,33 +112,48 @@ exports.add_asset = async (req, res) => {
 
 exports.getAllAssets = async (req, res) => {
   try {
-    const { asset_type, status, search } = req.query;
+    const { asset_type, status, search, page = 1, limit = 10 } = req.query;
     let whereClause = {};
 
+    // Filter by asset_type
     if (asset_type) {
       whereClause.asset_type = asset_type;
     }
 
+    // Filter by status
     if (status) {
       whereClause.status = status;
     }
 
+    // Search functionality
     if (search) {
       whereClause[Op.or] = [
         { serial_no: { [Op.like]: `%${search}%` } },
         { brand: { [Op.like]: `%${search}%` } },
+        { model: { [Op.like]: `%${search}%` } },
+        { processor: { [Op.like]: `%${search}%` } },
       ];
     }
 
-    const assets = await Asset.findAll({
+    // Pagination
+    const offset = (page - 1) * limit;
+    const parsedLimit = parseInt(limit);
+    const parsedOffset = parseInt(offset);
+
+    // Get assets with pagination
+    const { count, rows } = await Asset.findAndCountAll({
       where: whereClause,
       order: [["createdAt", "DESC"]],
+      limit: parsedLimit,
+      offset: parsedOffset,
     });
 
     res.status(200).json({
       success: true,
-      count: assets.length,
-      data: assets,
+      count: count,
+      totalPages: Math.ceil(count / parsedLimit),
+      currentPage: parseInt(page),
+      data: rows,
     });
   } catch (error) {
     console.error("Error fetching assets:", error);
