@@ -8,9 +8,11 @@ const { checkPermission } = require("../middlewares/permissionCheck");
 router.use(verifyToken);
 
 // Asset CRUD with permission checks
-router.post("/add-asset", checkPermission("ADD_ASSET"), assetController.add);
+router.post("/add-asset", checkPermission("ADD_ASSET"), assetController.add_asset);
 router.get("/assetsList", checkPermission("VIEW_ASSETS_LIST"), assetController.getAllAssets);
-router.get("/asset-available/:type", checkPermission("VIEW_ASSETS_LIST"), assetController.getAvailableAssetsByType);
+router.get("/assets/:id", assetController.getAssetById);
+router.put("/assets/:id", assetController.updateAsset);
+// router.get("/asset-available/:type", checkPermission("VIEW_ASSETS_LIST"), assetController.getAvailableAssetsByType);
 
 // Allocation routes with permission checks
 router.post("/asset-allocation", checkPermission("ALLOCATE_ASSET"), assetController.allocateAsset);

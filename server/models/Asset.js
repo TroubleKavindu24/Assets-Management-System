@@ -47,13 +47,25 @@ const Asset = sequelize.define("Asset", {
     allowNull: true,
     comment: "e.g., Intel i5, AMD Ryzen 7",
   },
+
+  model: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    comment: "e.g., PRO BOOK",
+  },
+
+  gen: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    comment: "e.g., 11 gen",
+  },
   
   warranty_period_months: {
     type: DataTypes.INTEGER,
     allowNull: true,
     validate: {
       min: 0,
-      max: 120, // Maximum 10 years warranty
+      max: 120,
     },
     comment: "Warranty period in months",
   },
@@ -63,7 +75,6 @@ const Asset = sequelize.define("Asset", {
     comment: "Automatically calculated based on purchase_date + warranty_period_months",
   },
   
-  // Accessories
   accessories: {
     type: DataTypes.ENUM("Charger", "Bag", "Mouse"),
     allowNull: true,
