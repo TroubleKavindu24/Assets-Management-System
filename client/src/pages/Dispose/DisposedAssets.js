@@ -13,6 +13,7 @@ const DisposedAssets = () => {
   const [searchType, setSearchType] = useState('serial_no');
   const [searchTerm, setSearchTerm] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
   
   // Pagination States
   const [currentPage, setCurrentPage] = useState(1);
@@ -20,27 +21,37 @@ const DisposedAssets = () => {
   
   const navigate = useNavigate();
 
+  // Get token from localStorage
+  const getToken = () => localStorage.getItem('token');
+
   useEffect(() => {
     fetchDisposedAssets();
   }, []);
 
   useEffect(() => {
     filterAssets();
-  }, [searchTerm, searchType, locationFilter, disposedAssets]);
+  }, [searchTerm, searchType, locationFilter, typeFilter, disposedAssets]);
 
   const fetchDisposedAssets = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5005/api/assets/disposed-assets');
+      const token = getToken();
+      const response = await fetch('http://localhost:5005/api/assets/disposed', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       const data = await response.json();
       
-      if (response.ok) {
+      if (response.ok && data.success) {
         setDisposedAssets(data.data || []);
         setFilteredAssets(data.data || []);
       } else {
         setError(data.message || 'Failed to fetch disposed assets');
       }
     } catch (err) {
+      console.error('Error fetching disposed assets:', err);
       setError('Network error: ' + err.message);
     } finally {
       setLoading(false);
@@ -63,6 +74,8 @@ const DisposedAssets = () => {
             return asset.brand?.toLowerCase().includes(term);
           case 'disposed_by':
             return asset.disposed_by?.toLowerCase().includes(term);
+          case 'disposed_reason':
+            return asset.disposed_reason?.toLowerCase().includes(term);
           default:
             return asset.serial_no?.toLowerCase().includes(term);
         }
@@ -74,6 +87,11 @@ const DisposedAssets = () => {
       filtered = filtered.filter(asset => asset.disposed_location === locationFilter);
     }
     
+    // Asset type filter
+    if (typeFilter) {
+      filtered = filtered.filter(asset => asset.asset_type === typeFilter);
+    }
+    
     setFilteredAssets(filtered);
     setCurrentPage(1);
   };
@@ -82,20 +100,40 @@ const DisposedAssets = () => {
     setSearchTerm('');
     setSearchType('serial_no');
     setLocationFilter('');
+    setTypeFilter('');
   };
 
   const getLocationBadgeClass = (location) => {
     switch (location) {
-      case 'Boralla':
-        return 'location-boralla';
-      case 'Location2':
+      case 'Borella':
+        return 'location-borella';
+      case 'Location 1':
+        return 'location-location1';
+      case 'Location 2':
         return 'location-location2';
-      case 'Location3':
-        return 'location-location3';
       default:
         return '';
     }
   };
+
+  const getAssetTypeBadgeClass = (type) => {
+    switch (type) {
+      case 'Laptop':
+        return 'type-laptop';
+      case 'Desktop PC':
+        return 'type-desktop';
+      case 'Monitor':
+        return 'type-monitor';
+      case 'Printer':
+        return 'type-printer';
+      default:
+        return 'type-other';
+    }
+  };
+
+  // Get unique asset types for filter
+  const uniqueAssetTypes = [...new Set(disposedAssets.map(a => a.asset_type))];
+  const uniqueLocations = [...new Set(disposedAssets.map(a => a.disposed_location))];
 
   // Pagination Logic
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -117,7 +155,28 @@ const DisposedAssets = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString();
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Calculate summary statistics
+  const summaryStats = {
+    total: disposedAssets.length,
+    byLocation: {
+      Borella: disposedAssets.filter(a => a.disposed_location === 'Borella').length,
+      'Location 1': disposedAssets.filter(a => a.disposed_location === 'Location 1').length,
+      'Location 2': disposedAssets.filter(a => a.disposed_location === 'Location 2').length,
+    },
+    byType: {
+      Laptop: disposedAssets.filter(a => a.asset_type === 'Laptop').length,
+      'Desktop PC': disposedAssets.filter(a => a.asset_type === 'Desktop PC').length,
+      Monitor: disposedAssets.filter(a => a.asset_type === 'Monitor').length,
+      Printer: disposedAssets.filter(a => a.asset_type === 'Printer').length,
+      Other: disposedAssets.filter(a => a.asset_type === 'Other').length,
+    }
   };
 
   if (loading) return <div className="loading">Loading disposed assets...</div>;
@@ -131,11 +190,36 @@ const DisposedAssets = () => {
           <p className="asset-count">Total Disposed: {disposedAssets.length}</p>
         </div>
         <button 
-          onClick={() => navigate('/assets')} 
+          onClick={() => navigate('/assets-list')} 
           className="back-btn"
         >
           ← Back to Assets
         </button>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="summary-cards">
+        <div className="summary-card">
+          <div className="summary-icon">🗑️</div>
+          <div className="summary-info">
+            <span className="summary-label">Total Disposed</span>
+            <span className="summary-value">{summaryStats.total}</span>
+          </div>
+        </div>
+        <div className="summary-card">
+          <div className="summary-icon">📍</div>
+          <div className="summary-info">
+            <span className="summary-label">Locations</span>
+            <span className="summary-value">{uniqueLocations.length}</span>
+          </div>
+        </div>
+        <div className="summary-card">
+          <div className="summary-icon">💻</div>
+          <div className="summary-info">
+            <span className="summary-label">Asset Types</span>
+            <span className="summary-value">{uniqueAssetTypes.length}</span>
+          </div>
+        </div>
       </div>
 
       {/* Search and Filter Section */}
@@ -152,6 +236,7 @@ const DisposedAssets = () => {
               <option value="asset_type">Asset Type</option>
               <option value="brand">Brand</option>
               <option value="disposed_by">Disposed By</option>
+              <option value="disposed_reason">Disposal Reason</option>
             </select>
           </div>
           
@@ -164,7 +249,7 @@ const DisposedAssets = () => {
               className="filter-input"
             />
             {searchTerm && (
-              <button onClick={clearFilters} className="clear-filter-btn" title="Clear search">
+              <button onClick={() => setSearchTerm('')} className="clear-filter-btn" title="Clear search">
                 ✕
               </button>
             )}
@@ -178,13 +263,27 @@ const DisposedAssets = () => {
               className="filter-select"
             >
               <option value="">All Locations</option>
-              <option value="Boralla">Boralla</option>
-              <option value="Location2">Location2</option>
-              <option value="Location3">Location3</option>
+              <option value="Borella">Borella</option>
+              <option value="Location 1">Location 1</option>
+              <option value="Location 2">Location 2</option>
             </select>
           </div>
 
-          {(searchTerm || locationFilter) && (
+          <div className="type-filter">
+            <label>Asset Type:</label>
+            <select 
+              value={typeFilter} 
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">All Types</option>
+              {uniqueAssetTypes.map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+          </div>
+
+          {(searchTerm || locationFilter || typeFilter) && (
             <button onClick={clearFilters} className="clear-all-btn">
               Clear All Filters
             </button>
@@ -205,11 +304,11 @@ const DisposedAssets = () => {
           <div className="no-data-icon">🗑️</div>
           <h3>No disposed assets found</h3>
           <p>
-            {searchTerm || locationFilter 
+            {searchTerm || locationFilter || typeFilter 
               ? "No assets match your filter criteria. Try different search terms."
               : "No assets have been disposed yet."}
           </p>
-          {(searchTerm || locationFilter) && (
+          {(searchTerm || locationFilter || typeFilter) && (
             <button onClick={clearFilters} className="clear-filters-btn">
               Clear Filters
             </button>
@@ -224,6 +323,7 @@ const DisposedAssets = () => {
                   <th>Serial No</th>
                   <th>Asset Type</th>
                   <th>Brand</th>
+                  <th>Model</th>
                   <th>OS</th>
                   <th>Disposed Location</th>
                   <th>Disposed By</th>
@@ -234,10 +334,15 @@ const DisposedAssets = () => {
               <tbody>
                 {currentItems.map((asset) => (
                   <tr key={asset.disposed_id}>
-                    <td><strong>{asset.serial_no}</strong></td>
-                    <td>{asset.asset_type}</td>
-                    <td>{asset.brand}</td>
-                    <td>{asset.os}</td>
+                    <td><strong className="serial-number">{asset.serial_no}</strong></td>
+                    <td>
+                      <span className={`asset-type-badge ${getAssetTypeBadgeClass(asset.asset_type)}`}>
+                        {asset.asset_type}
+                      </span>
+                    </td>
+                    <td>{asset.brand || '-'}</td>
+                    <td>{asset.model || '-'}</td>
+                    <td>{asset.os || '-'}</td>
                     <td>
                       <span className={`location-badge ${getLocationBadgeClass(asset.disposed_location)}`}>
                         {asset.disposed_location}
@@ -245,7 +350,13 @@ const DisposedAssets = () => {
                     </td>
                     <td>{asset.disposed_by}</td>
                     <td>{formatDate(asset.disposed_date)}</td>
-                    <td className="reason-cell">{asset.disposed_reason || '-'}</td>
+                    <td className="reason-cell" title={asset.disposed_reason}>
+                      {asset.disposed_reason ? (
+                        asset.disposed_reason.length > 50 
+                          ? asset.disposed_reason.substring(0, 50) + '...' 
+                          : asset.disposed_reason
+                      ) : '-'}
+                    </td>
                   </tr>
                 ))}
               </tbody>

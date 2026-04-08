@@ -1,108 +1,13 @@
-/* src/components/AllocateAssetForm.css */
-.allocate-container {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  max-width: 800px;
-  margin: 0 auto;
-}
+/* Add to your existing AllocateAssetForm.css */
 
-.form-header {
-  background: rgb(255, 153, 0);
-  padding: 1.5rem;
-  text-align: center;
-}
-
-.form-header h2 {
-  color: white;
-  margin-bottom: 0.5rem;
-  font-size: 1.5rem;
-}
-
-.form-header p {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
-}
-
-.allocate-form {
-  padding: 2rem;
-}
-
-.form-row {
+.specs-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.form-group label {
-  font-weight: 600;
-  color: #333;
-  font-size: 0.9rem;
-}
-
-.form-control {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.form-control:disabled {
-  background: #f5f5f5;
-  cursor: not-allowed;
-}
-
-.hint-text {
-  font-size: 0.75rem;
-  color: #6c757d;
-  margin-top: 0.25rem;
-}
-
-.loading-indicator {
-  padding: 0.75rem;
-  background: #f5f5f5;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  color: #666;
-  text-align: center;
-}
-
-.info-box {
-  background: #f0f9ff;
-  border-left: 4px solid #3b82f6;
-  padding: 1rem;
-  border-radius: 8px;
-  margin: 1.5rem 0;
-}
-
-.info-box h4 {
-  margin: 0 0 0.75rem 0;
-  color: #1e40af;
-  font-size: 0.9rem;
-}
-
-.summary-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 0.75rem;
+  margin-top: 0.75rem;
 }
 
-.stat {
+.spec-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -112,102 +17,62 @@
   font-size: 0.85rem;
 }
 
-.stat span {
+.spec-item span {
   color: #666;
+  font-weight: 500;
 }
 
-.stat strong {
-  color: #3b82f6;
-  font-size: 1rem;
+.spec-item strong {
+  color: #333;
 }
 
-.form-actions {
+.desktop-options {
+  background: #fef3e8;
+  border-left-color: #ff9800;
+}
+
+.checkbox-group {
   display: flex;
-  gap: 1rem;
-  margin-top: 2rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
 }
 
-.submit-btn,
-.reset-btn {
-  flex: 1;
-  padding: 0.75rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 600;
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  font-weight: normal;
 }
 
-.submit-btn {
-  background:  rgb(255, 153, 0);
-  color: white;
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
 }
 
-.submit-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+.checkbox-label span {
+  font-size: 0.9rem;
+  color: #333;
 }
 
-.submit-btn:disabled {
-  opacity: 0.6;
+select:disabled {
+  background-color: #f5f5f5;
   cursor: not-allowed;
 }
 
-.reset-btn {
-  background: #f5f5f5;
-  color: #666;
-  border: 1px solid #ddd;
+/* Loading animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
-.reset-btn:hover {
-  background: #e8e8e8;
-  transform: translateY(-1px);
-}
-
-.success-message {
-  background: #d4edda;
-  color: #155724;
-  padding: 0.75rem;
-  margin: 1rem 2rem;
-  border-radius: 6px;
-  border-left: 4px solid #28a745;
-}
-
-.error-message {
-  background: #f8d7da;
-  color: #721c24;
-  padding: 0.75rem;
-  margin: 1rem 2rem;
-  border-radius: 6px;
-  border-left: 4px solid #dc3545;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .allocate-container {
-    margin: 1rem;
-  }
-  
-  .form-row {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .allocate-form {
-    padding: 1.5rem;
-  }
-
-  .summary-stats {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .form-actions {
-    flex-direction: column;
-  }
-
-  .submit-btn,
-  .reset-btn {
-    width: 100%;
-  }
+.loading-indicator {
+  animation: pulse 1.5s ease-in-out infinite;
 }

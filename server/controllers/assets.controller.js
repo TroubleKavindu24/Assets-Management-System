@@ -107,6 +107,7 @@ exports.add_asset = async (req, res) => {
     });
   }
 };
+
 exports.allocateAsset = async (req, res) => {
   const transaction = await Asset.sequelize.transaction();
   
@@ -119,10 +120,15 @@ exports.allocateAsset = async (req, res) => {
       allocated_by,
       allocated_date,
       asset_type,
+      // Desktop PC fields
       allocated_monitor_id,
+      desktop_allocated_mouse,
+      desktop_allocated_keyboard,
+      // Laptop fields
+      allocated_charger,
+      allocated_bag,
       allocated_mouse,
       allocated_keyboard,
-      accessories, // NEW: accessories for Laptop
     } = req.body;
 
     // Find the asset
@@ -154,7 +160,7 @@ exports.allocateAsset = async (req, res) => {
     if (!department_id) validationErrors.push("Department is required");
     if (!allocated_by) validationErrors.push("Allocated by user is required");
 
-    // Asset type specific validations
+    // Desktop PC specific validations
     if (asset.asset_type === "Desktop PC") {
       if (allocated_monitor_id) {
         const monitor = await Asset.findOne({
@@ -171,10 +177,11 @@ exports.allocateAsset = async (req, res) => {
       }
     }
 
-    // NEW: Laptop accessories validation - now required during allocation
+    // Laptop accessories validation - at least one accessory required
     if (asset.asset_type === "Laptop") {
-      if (!accessories) {
-        validationErrors.push("Accessories (Charger, Bag, or Mouse) are required for Laptop allocation");
+      const hasAccessory = allocated_charger || allocated_bag || allocated_mouse || allocated_keyboard;
+      if (!hasAccessory) {
+        validationErrors.push("At least one accessory (Charger, Bag, Mouse, or Keyboard) is required for Laptop allocation");
       }
     }
 
@@ -188,8 +195,8 @@ exports.allocateAsset = async (req, res) => {
       });
     }
 
-    // Create allocation record
-    const allocation = await AssetAllocation.create({
+    // Prepare allocation data
+    const allocationData = {
       asset_id: asset.asset_id,
       serial_no: asset.serial_no,
       ip_address,
@@ -197,16 +204,30 @@ exports.allocateAsset = async (req, res) => {
       department_id,
       allocated_by,
       allocated_date: allocated_date || new Date(),
-      accessories: asset.asset_type === "Laptop" ? accessories : null, // NEW: Store accessories here
-      allocated_monitor_id: asset.asset_type === "Desktop PC" ? allocated_monitor_id || null : null,
-      allocated_mouse: asset.asset_type === "Desktop PC" ? (allocated_mouse || false) : false,
-      allocated_keyboard: asset.asset_type === "Desktop PC" ? (allocated_keyboard || false) : false,
-    }, { transaction });
+    };
+
+    // Add Desktop PC specific fields
+    if (asset.asset_type === "Desktop PC") {
+      allocationData.allocated_monitor_id = allocated_monitor_id || null;
+      allocationData.desktop_allocated_mouse = desktop_allocated_mouse || false;
+      allocationData.desktop_allocated_keyboard = desktop_allocated_keyboard || false;
+    }
+
+    // Add Laptop specific fields
+    if (asset.asset_type === "Laptop") {
+      allocationData.allocated_charger = allocated_charger || false;
+      allocationData.allocated_bag = allocated_bag || false;
+      allocationData.allocated_mouse = allocated_mouse || false;
+      allocationData.allocated_keyboard = allocated_keyboard || false;
+    }
+
+    // Create allocation record
+    const allocation = await AssetAllocation.create(allocationData, { transaction });
 
     // Update asset status to ALLOCATED
     await asset.update({ status: "ALLOCATED" }, { transaction });
 
-    // If monitor is allocated, update its status
+    // If monitor is allocated for Desktop PC, update its status
     if (allocated_monitor_id && asset.asset_type === "Desktop PC") {
       const monitor = await Asset.findByPk(allocated_monitor_id);
       if (monitor) {
@@ -222,19 +243,39 @@ exports.allocateAsset = async (req, res) => {
         {
           model: Asset,
           as: "asset",
-          attributes: ["asset_type", "brand", "model", "ram_capacity", "hard_drive", "processor"],
+          attributes: ["asset_id", "serial_no", "asset_type", "brand", "model", "ram_capacity", "hard_drive", "processor", "os", "status"],
         },
         {
           model: Asset,
           as: "allocated_monitor",
-          attributes: ["serial_no", "brand", "model"],
+          attributes: ["asset_id", "serial_no", "brand", "model"],
+          required: false,
         },
       ],
     });
 
+    // Prepare response message with accessories info
+    let accessoriesMessage = "";
+    if (asset.asset_type === "Laptop") {
+      const selectedAccessories = [];
+      if (allocated_charger) selectedAccessories.push("Charger");
+      if (allocated_bag) selectedAccessories.push("Bag");
+      if (allocated_mouse) selectedAccessories.push("Mouse");
+      if (allocated_keyboard) selectedAccessories.push("Keyboard");
+      accessoriesMessage = ` with accessories: ${selectedAccessories.join(", ")}`;
+    } else if (asset.asset_type === "Desktop PC") {
+      const selectedAccessories = [];
+      if (desktop_allocated_mouse) selectedAccessories.push("Mouse");
+      if (desktop_allocated_keyboard) selectedAccessories.push("Keyboard");
+      if (allocated_monitor_id) selectedAccessories.push("Monitor");
+      if (selectedAccessories.length > 0) {
+        accessoriesMessage = ` with accessories: ${selectedAccessories.join(", ")}`;
+      }
+    }
+
     return res.status(201).json({
       success: true,
-      message: "Asset allocated successfully",
+      message: `Asset allocated successfully${accessoriesMessage}`,
       data: completeAllocation,
     });
 
@@ -250,6 +291,7 @@ exports.allocateAsset = async (req, res) => {
     });
   }
 };
+
 exports.getAvailableAssetsByType = async (req, res) => {
   try {
     const { type } = req.params;

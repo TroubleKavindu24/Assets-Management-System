@@ -4,7 +4,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { 
-  FaBoxes, FaUserCheck, FaCheckCircle, FaTrash,
+  FaBoxes, FaUserCheck, FaCheckCircle, FaTrash, FaPlus, FaShare, FaList, FaChartLine
 } from 'react-icons/fa';
 
 const Dashboard = () => {
@@ -30,12 +30,12 @@ const Dashboard = () => {
     availableOther: 0,
     totalAvailable: 0,
     
-    // Handover/Returned assets
-    handoverLaptops: 0,
-    handoverPrinters: 0,
-    handoverMachines: 0,
-    handoverOther: 0,
-    totalHandover: 0,
+    // Under repair assets
+    underRepairLaptops: 0,
+    underRepairPrinters: 0,
+    underRepairMachines: 0,
+    underRepairOther: 0,
+    totalUnderRepair: 0,
     
     // Disposed assets
     disposedLaptops: 0,
@@ -45,34 +45,43 @@ const Dashboard = () => {
     totalDisposed: 0,
     
     // Disposed by location
-    disposedBoralla: 0,
+    disposedBorella: 0,
+    disposedLocation1: 0,
     disposedLocation2: 0,
-    disposedLocation3: 0,
   });
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  // Get token from localStorage
+  const getToken = () => localStorage.getItem("token");
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
+        const token = getToken();
         
-        // Fetch all assets
-        const assetsRes = await axios.get("http://localhost:5005/api/assets/assetsList");
+        const headers = {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        };
+
+        // CORRECTED: Fetch all assets from your backend - using /assetsList not /assets/assetsList
+        const assetsRes = await axios.get("http://localhost:5005/api/assets/assetsList", { headers });
         let assets = [];
         
-        if (Array.isArray(assetsRes.data)) {
-          assets = assetsRes.data;
-        } else if (assetsRes.data.data && Array.isArray(assetsRes.data.data)) {
+        if (assetsRes.data.success && Array.isArray(assetsRes.data.data)) {
           assets = assetsRes.data.data;
+        } else if (Array.isArray(assetsRes.data)) {
+          assets = assetsRes.data;
         } else {
           assets = [];
         }
         
-        // Fetch disposed assets
-        const disposedRes = await axios.get("http://localhost:5005/api/assets/disposed-assets");
+        // CORRECTED: Fetch disposed assets - using /disposed-assets not /assets/disposed-assets
+        const disposedRes = await axios.get("http://localhost:5005/api/assets/disposed", { headers });
         let disposedAssets = [];
         
         if (disposedRes.data.success && Array.isArray(disposedRes.data.data)) {
@@ -83,55 +92,62 @@ const Dashboard = () => {
           disposedAssets = [];
         }
         
+        console.log("Assets fetched:", assets.length);
+        console.log("Disposed assets fetched:", disposedAssets.length);
+        
         // Calculate statistics for active assets
         const totalLaptops = assets.filter(a => a.asset_type === "Laptop").length;
         const totalPrinters = assets.filter(a => a.asset_type === "Printer").length;
-        const totalMachines = assets.filter(a => a.asset_type === "Machine").length;
-        const totalOther = assets.filter(a => a.asset_type === "Other").length;
+        const totalMachines = assets.filter(a => a.asset_type === "Desktop PC").length;
+        const totalOther = assets.filter(a => a.asset_type === "Other" || a.asset_type === "Monitor").length;
         const totalAssets = assets.length;
         
+        // Allocated assets
         const allocatedLaptops = assets.filter(a => a.asset_type === "Laptop" && a.status === "ALLOCATED").length;
         const allocatedPrinters = assets.filter(a => a.asset_type === "Printer" && a.status === "ALLOCATED").length;
-        const allocatedMachines = assets.filter(a => a.asset_type === "Machine" && a.status === "ALLOCATED").length;
-        const allocatedOther = assets.filter(a => a.asset_type === "Other" && a.status === "ALLOCATED").length;
+        const allocatedMachines = assets.filter(a => a.asset_type === "Desktop PC" && a.status === "ALLOCATED").length;
+        const allocatedOther = assets.filter(a => (a.asset_type === "Other" || a.asset_type === "Monitor") && a.status === "ALLOCATED").length;
         const totalAllocated = allocatedLaptops + allocatedPrinters + allocatedMachines + allocatedOther;
         
+        // Available assets
         const availableLaptops = assets.filter(a => a.asset_type === "Laptop" && a.status === "AVAILABLE").length;
         const availablePrinters = assets.filter(a => a.asset_type === "Printer" && a.status === "AVAILABLE").length;
-        const availableMachines = assets.filter(a => a.asset_type === "Machine" && a.status === "AVAILABLE").length;
-        const availableOther = assets.filter(a => a.asset_type === "Other" && a.status === "AVAILABLE").length;
+        const availableMachines = assets.filter(a => a.asset_type === "Desktop PC" && a.status === "AVAILABLE").length;
+        const availableOther = assets.filter(a => (a.asset_type === "Other" || a.asset_type === "Monitor") && a.status === "AVAILABLE").length;
         const totalAvailable = availableLaptops + availablePrinters + availableMachines + availableOther;
         
-        const handoverLaptops = assets.filter(a => a.asset_type === "Laptop" && a.status === "AVAILABLE").length;
-        const handoverPrinters = assets.filter(a => a.asset_type === "Printer" && a.status === "AVAILABLE").length;
-        const handoverMachines = assets.filter(a => a.asset_type === "Machine" && a.status === "AVAILABLE").length;
-        const handoverOther = assets.filter(a => a.asset_type === "Other" && a.status === "AVAILABLE").length;
-        const totalHandover = handoverLaptops + handoverPrinters + handoverMachines + handoverOther;
+        // Under repair assets
+        const underRepairLaptops = assets.filter(a => a.asset_type === "Laptop" && a.status === "UNDER_REPAIR").length;
+        const underRepairPrinters = assets.filter(a => a.asset_type === "Printer" && a.status === "UNDER_REPAIR").length;
+        const underRepairMachines = assets.filter(a => a.asset_type === "Desktop PC" && a.status === "UNDER_REPAIR").length;
+        const underRepairOther = assets.filter(a => (a.asset_type === "Other" || a.asset_type === "Monitor") && a.status === "UNDER_REPAIR").length;
+        const totalUnderRepair = underRepairLaptops + underRepairPrinters + underRepairMachines + underRepairOther;
         
         // Calculate disposed statistics
         const disposedLaptops = disposedAssets.filter(a => a.asset_type === "Laptop").length;
         const disposedPrinters = disposedAssets.filter(a => a.asset_type === "Printer").length;
-        const disposedMachines = disposedAssets.filter(a => a.asset_type === "Machine").length;
-        const disposedOther = disposedAssets.filter(a => a.asset_type === "Other").length;
+        const disposedMachines = disposedAssets.filter(a => a.asset_type === "Desktop PC").length;
+        const disposedOther = disposedAssets.filter(a => a.asset_type === "Other" || a.asset_type === "Monitor").length;
         const totalDisposed = disposedAssets.length;
         
-        // Calculate disposed by location
-        const disposedBoralla = disposedAssets.filter(a => a.disposed_location === "Boralla").length;
-        const disposedLocation2 = disposedAssets.filter(a => a.disposed_location === "Location2").length;
-        const disposedLocation3 = disposedAssets.filter(a => a.disposed_location === "Location3").length;
+        // Calculate disposed by location (using correct location names from your model)
+        const disposedBorella = disposedAssets.filter(a => a.disposed_location === "Borella").length;
+        const disposedLocation1 = disposedAssets.filter(a => a.disposed_location === "Location 1").length;
+        const disposedLocation2 = disposedAssets.filter(a => a.disposed_location === "Location 2").length;
         
         setStats({
           totalLaptops, totalPrinters, totalMachines, totalOther, totalAssets,
           allocatedLaptops, allocatedPrinters, allocatedMachines, allocatedOther, totalAllocated,
           availableLaptops, availablePrinters, availableMachines, availableOther, totalAvailable,
-          handoverLaptops, handoverPrinters, handoverMachines, handoverOther, totalHandover,
+          underRepairLaptops, underRepairPrinters, underRepairMachines, underRepairOther, totalUnderRepair,
           disposedLaptops, disposedPrinters, disposedMachines, disposedOther, totalDisposed,
-          disposedBoralla, disposedLocation2, disposedLocation3,
+          disposedBorella, disposedLocation1, disposedLocation2,
         });
         
         setLoading(false);
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
+        console.error("Error details:", err.response?.data);
         setError(err.response?.data?.message || "Failed to fetch dashboard data");
         setLoading(false);
       }
@@ -140,27 +156,27 @@ const Dashboard = () => {
     fetchDashboardData();
   }, []);
 
-  // Prepare data for pie chart
+  // Prepare data for pie chart (only show non-zero values)
   const pieData = [
     { name: 'Allocated', value: stats.totalAllocated, color: '#f59e0b' },
     { name: 'Available', value: stats.totalAvailable, color: '#10b981' },
-    { name: 'Under Repair', value: stats.totalAssets - stats.totalAllocated - stats.totalAvailable, color: '#ef4444' },
-  ];
+    { name: 'Under Repair', value: stats.totalUnderRepair, color: '#ef4444' },
+  ].filter(item => item.value > 0);
 
   // Prepare data for disposed by location bar chart
   const disposedLocationData = [
-    { name: 'Boralla', count: stats.disposedBoralla, color: '#ef4444' },
-    { name: 'Location2', count: stats.disposedLocation2, color: '#f59e0b' },
-    { name: 'Location3', count: stats.disposedLocation3, color: '#8b5cf6' },
-  ];
+    { name: 'Borella', count: stats.disposedBorella, color: '#ef4444' },
+    { name: 'Location 1', count: stats.disposedLocation1, color: '#f59e0b' },
+    { name: 'Location 2', count: stats.disposedLocation2, color: '#8b5cf6' },
+  ].filter(item => item.count > 0);
 
   // Prepare data for asset type distribution
   const assetTypeData = [
-    { name: 'Laptops', total: stats.totalLaptops, allocated: stats.allocatedLaptops, available: stats.availableLaptops, disposed: stats.disposedLaptops },
-    { name: 'Printers', total: stats.totalPrinters, allocated: stats.allocatedPrinters, available: stats.availablePrinters, disposed: stats.disposedPrinters },
-    { name: 'Machines', total: stats.totalMachines, allocated: stats.allocatedMachines, available: stats.availableMachines, disposed: stats.disposedMachines },
-    { name: 'Others', total: stats.totalOther, allocated: stats.allocatedOther, available: stats.availableOther, disposed: stats.disposedOther },
-  ];
+    { name: 'Laptops', total: stats.totalLaptops, allocated: stats.allocatedLaptops, available: stats.availableLaptops, disposed: stats.disposedLaptops, underRepair: stats.underRepairLaptops },
+    { name: 'Desktop PCs', total: stats.totalMachines, allocated: stats.allocatedMachines, available: stats.availableMachines, disposed: stats.disposedMachines, underRepair: stats.underRepairMachines },
+    { name: 'Printers', total: stats.totalPrinters, allocated: stats.allocatedPrinters, available: stats.availablePrinters, disposed: stats.disposedPrinters, underRepair: stats.underRepairPrinters },
+    { name: 'Others', total: stats.totalOther, allocated: stats.allocatedOther, available: stats.availableOther, disposed: stats.disposedOther, underRepair: stats.underRepairOther },
+  ].filter(item => item.total > 0);
 
   const COLORS = ['#f59e0b', '#10b981', '#ef4444'];
 
@@ -240,87 +256,95 @@ const Dashboard = () => {
       {/* Main Grid */}
       <div style={styles.mainGrid}>
         {/* Pie Chart Section */}
-        <div style={styles.chartSection}>
-          <h2 style={styles.sectionTitle}>Asset Status Distribution</h2>
-          <div style={styles.chartContainer}>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+        {pieData.length > 0 && (
+          <div style={styles.chartSection}>
+            <h2 style={styles.sectionTitle}>Asset Status Distribution</h2>
+            <div style={styles.chartContainer}>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Disposed by Location Chart */}
-        <div style={styles.chartSection}>
-          <h2 style={styles.sectionTitle}>Disposed Assets by Location</h2>
-          <div style={styles.chartContainer}>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={disposedLocationData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#ef4444" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+        {disposedLocationData.length > 0 && (
+          <div style={styles.chartSection}>
+            <h2 style={styles.sectionTitle}>Disposed Assets by Location</h2>
+            <div style={styles.chartContainer}>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={disposedLocationData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#ef4444" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Asset Type Distribution Table */}
-      {/* <div style={styles.tableSection}>
-        <h2 style={styles.sectionTitle}>Asset Type Distribution</h2>
-        <div style={styles.tableContainer}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th>Asset Type</th>
-                <th>Total</th>
-                <th>Allocated</th>
-                <th>Available</th>
-                <th>Disposed</th>
-                <th>Utilization</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assetTypeData.map((item, index) => {
-                const utilization = item.total > 0 ? ((item.allocated / item.total) * 100).toFixed(1) : 0;
-                return (
-                  <tr key={index}>
-                    <td><strong>{item.name}</strong></td>
-                    <td>{item.total}</td>
-                    <td style={{ color: '#f59e0b' }}>{item.allocated}</td>
-                    <td style={{ color: '#10b981' }}>{item.available}</td>
-                    <td style={{ color: '#ef4444' }}>{item.disposed}</td>
-                    <td>
-                      <div style={styles.progressBar}>
-                        <div style={{...styles.progressFill, width: `${utilization}%`}}></div>
-                        <span style={styles.progressText}>{utilization}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      {assetTypeData.length > 0 && (
+        <div style={styles.tableSection}>
+          <h2 style={styles.sectionTitle}>Asset Type Distribution</h2>
+          <div style={styles.tableContainer}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th>Asset Type</th>
+                  <th>Total</th>
+                  <th>Allocated</th>
+                  <th>Available</th>
+                  <th>Under Repair</th>
+                  <th>Disposed</th>
+                  <th>Utilization</th>
+                </tr>
+              </thead>
+              <tbody>
+                {assetTypeData.map((item, index) => {
+                  const utilization = item.total > 0 ? ((item.allocated / item.total) * 100).toFixed(1) : 0;
+                  return (
+                    <tr key={index}>
+                      <td><strong>{item.name}</strong></td>
+                      <td>{item.total}</td>
+                      <td style={{ color: '#f59e0b' }}>{item.allocated}</td>
+                      <td style={{ color: '#10b981' }}>{item.available}</td>
+                      <td style={{ color: '#ef4444' }}>{item.underRepair}</td>
+                      <td style={{ color: '#6b7280' }}>{item.disposed}</td>
+                      <td>
+                        <div style={styles.progressBar}>
+                          <div style={{...styles.progressFill, width: `${utilization}%`}}></div>
+                          <span style={styles.progressText}>{utilization}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div> */}
+      )}
 
       {/* Asset Status Grid */}
       <div style={styles.statusGrid}>
@@ -336,12 +360,12 @@ const Dashboard = () => {
               <strong>{stats.allocatedLaptops}</strong>
             </div>
             <div style={styles.statusRow}>
-              <span>Printers</span>
-              <strong>{stats.allocatedPrinters}</strong>
+              <span>Desktop PCs</span>
+              <strong>{stats.allocatedMachines}</strong>
             </div>
             <div style={styles.statusRow}>
-              <span>Machines</span>
-              <strong>{stats.allocatedMachines}</strong>
+              <span>Printers</span>
+              <strong>{stats.allocatedPrinters}</strong>
             </div>
             <div style={styles.statusRow}>
               <span>Others</span>
@@ -366,12 +390,12 @@ const Dashboard = () => {
               <strong>{stats.availableLaptops}</strong>
             </div>
             <div style={styles.statusRow}>
-              <span>Printers</span>
-              <strong>{stats.availablePrinters}</strong>
+              <span>Desktop PCs</span>
+              <strong>{stats.availableMachines}</strong>
             </div>
             <div style={styles.statusRow}>
-              <span>Machines</span>
-              <strong>{stats.availableMachines}</strong>
+              <span>Printers</span>
+              <strong>{stats.availablePrinters}</strong>
             </div>
             <div style={styles.statusRow}>
               <span>Others</span>
@@ -384,32 +408,32 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Disposed Section */}
+        {/* Under Repair Section */}
         <div style={styles.statusCard}>
           <div style={{...styles.statusHeader, backgroundColor: '#fee2e2'}}>
             <FaTrash style={styles.statusIcon} />
-            <h3 style={styles.statusTitle}>Disposed Assets</h3>
+            <h3 style={styles.statusTitle}>Under Repair</h3>
           </div>
           <div style={styles.statusContent}>
             <div style={styles.statusRow}>
               <span>Laptops</span>
-              <strong>{stats.disposedLaptops}</strong>
+              <strong>{stats.underRepairLaptops}</strong>
+            </div>
+            <div style={styles.statusRow}>
+              <span>Desktop PCs</span>
+              <strong>{stats.underRepairMachines}</strong>
             </div>
             <div style={styles.statusRow}>
               <span>Printers</span>
-              <strong>{stats.disposedPrinters}</strong>
-            </div>
-            <div style={styles.statusRow}>
-              <span>Machines</span>
-              <strong>{stats.disposedMachines}</strong>
+              <strong>{stats.underRepairPrinters}</strong>
             </div>
             <div style={styles.statusRow}>
               <span>Others</span>
-              <strong>{stats.disposedOther}</strong>
+              <strong>{stats.underRepairOther}</strong>
             </div>
             <div style={styles.statusTotal}>
-              <span>Total Disposed</span>
-              <strong>{stats.totalDisposed}</strong>
+              <span>Total Under Repair</span>
+              <strong>{stats.totalUnderRepair}</strong>
             </div>
           </div>
         </div>
@@ -420,33 +444,39 @@ const Dashboard = () => {
         <div style={styles.locationSection}>
           <h2 style={styles.sectionTitle}>Disposal Location Summary</h2>
           <div style={styles.locationGrid}>
-            <div style={styles.locationCard}>
-              <div style={{...styles.locationBadge, backgroundColor: '#fee2e2', color: '#ef4444'}}>
-                Boralla
+            {stats.disposedBorella > 0 && (
+              <div style={styles.locationCard}>
+                <div style={{...styles.locationBadge, backgroundColor: '#fee2e2', color: '#ef4444'}}>
+                  Borella
+                </div>
+                <div style={styles.locationCount}>{stats.disposedBorella}</div>
+                <div style={styles.locationLabel}>Assets Disposed</div>
               </div>
-              <div style={styles.locationCount}>{stats.disposedBoralla}</div>
-              <div style={styles.locationLabel}>Assets Disposed</div>
-            </div>
-            <div style={styles.locationCard}>
-              <div style={{...styles.locationBadge, backgroundColor: '#fef3c7', color: '#f59e0b'}}>
-                Location2
+            )}
+            {stats.disposedLocation1 > 0 && (
+              <div style={styles.locationCard}>
+                <div style={{...styles.locationBadge, backgroundColor: '#fef3c7', color: '#f59e0b'}}>
+                  Location 1
+                </div>
+                <div style={styles.locationCount}>{stats.disposedLocation1}</div>
+                <div style={styles.locationLabel}>Assets Disposed</div>
               </div>
-              <div style={styles.locationCount}>{stats.disposedLocation2}</div>
-              <div style={styles.locationLabel}>Assets Disposed</div>
-            </div>
-            <div style={styles.locationCard}>
-              <div style={{...styles.locationBadge, backgroundColor: '#e0e7ff', color: '#3b82f6'}}>
-                Location3
+            )}
+            {stats.disposedLocation2 > 0 && (
+              <div style={styles.locationCard}>
+                <div style={{...styles.locationBadge, backgroundColor: '#e0e7ff', color: '#3b82f6'}}>
+                  Location 2
+                </div>
+                <div style={styles.locationCount}>{stats.disposedLocation2}</div>
+                <div style={styles.locationLabel}>Assets Disposed</div>
               </div>
-              <div style={styles.locationCount}>{stats.disposedLocation3}</div>
-              <div style={styles.locationLabel}>Assets Disposed</div>
-            </div>
+            )}
           </div>
         </div>
       )}
 
       {/* Quick Actions */}
-      {/* <div style={styles.actionsSection}>
+      <div style={styles.actionsSection}>
         <h2 style={styles.sectionTitle}>Quick Actions</h2>
         <div style={styles.actionButtons}>
           <button style={styles.actionButton} onClick={() => navigate("/assetForm")}>
@@ -465,7 +495,7 @@ const Dashboard = () => {
             <FaTrash style={{ marginRight: '8px' }} /> View Disposed
           </button>
         </div>
-      </div> */}
+      </div>
     </div>
   );
 };
@@ -521,10 +551,6 @@ const styles = {
     boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
     transition: "transform 0.2s, box-shadow 0.2s",
     cursor: "pointer",
-    ':hover': {
-      transform: "translateY(-2px)",
-      boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-    },
   },
   summaryIconWrapper: {
     width: "56px",
@@ -722,10 +748,6 @@ const styles = {
     transition: "all 0.2s",
     display: "inline-flex",
     alignItems: "center",
-    ':hover': {
-      backgroundColor: "#2563eb",
-      transform: "translateY(-1px)",
-    },
   },
   loadingContainer: {
     display: "flex",
@@ -760,7 +782,7 @@ const styles = {
   },
 };
 
-// Add this to your global CSS or component
+// Add animation to document
 const styleSheet = document.createElement("style");
 styleSheet.textContent = `
   @keyframes spin {

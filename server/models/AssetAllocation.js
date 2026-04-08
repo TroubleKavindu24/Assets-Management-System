@@ -49,11 +49,26 @@ const AssetAllocation = sequelize.define("AssetAllocation", {
     allowNull: true,
   },
   
-  // MOVED FROM ASSET MODEL: Accessories for Laptop
-  accessories: {
-    type: DataTypes.ENUM("Charger", "Bag", "Mouse"),
-    allowNull: true,
-    comment: "Accessories allocated with the asset (primarily for Laptops)",
+  // Laptop Accessories - Separate boolean fields
+  allocated_charger: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    comment: "Whether charger is allocated with Laptop",
+  },
+  allocated_bag: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    comment: "Whether bag is allocated with Laptop",
+  },
+  allocated_mouse: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    comment: "Whether mouse is allocated with Laptop",
+  },
+  allocated_keyboard: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    comment: "Whether keyboard is allocated with Laptop",
   },
   
   // Desktop PC specific fields
@@ -62,12 +77,12 @@ const AssetAllocation = sequelize.define("AssetAllocation", {
     allowNull: true,
     comment: "Asset ID of allocated monitor for Desktop PC",
   },
-  allocated_mouse: {
+  desktop_allocated_mouse: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
     comment: "Whether mouse is allocated with Desktop PC",
   },
-  allocated_keyboard: {
+  desktop_allocated_keyboard: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
     comment: "Whether keyboard is allocated with Desktop PC",
