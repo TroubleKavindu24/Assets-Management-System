@@ -1,4 +1,4 @@
-// models/Asset.js (with ENUM for brand and OS and new attributes)
+// models/Asset.js
 const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/db");
 
@@ -11,7 +11,7 @@ const Asset = sequelize.define("Asset", {
   serial_no: {
     type: DataTypes.STRING(100),
     allowNull: false,
-    unique: true,
+    // unique: true,
     validate: {
       notEmpty: true,
     },
@@ -31,35 +31,26 @@ const Asset = sequelize.define("Asset", {
   purchase_date: {
     type: DataTypes.DATE,
   },
-  
   ram_capacity: {
     type: DataTypes.STRING(50),
     allowNull: true,
-    comment: "e.g., 8GB, 16GB, 32GB",
   },
   hard_drive: {
     type: DataTypes.STRING(100),
     allowNull: true,
-    comment: "e.g., 256GB SSD, 1TB HDD",
   },
   processor: {
     type: DataTypes.STRING(100),
     allowNull: true,
-    comment: "e.g., Intel i5, AMD Ryzen 7",
   },
-
   model: {
     type: DataTypes.STRING(100),
     allowNull: true,
-    comment: "e.g., PRO BOOK",
   },
-
   gen: {
     type: DataTypes.STRING(100),
     allowNull: true,
-    comment: "e.g., 11 gen",
   },
-  
   warranty_period_months: {
     type: DataTypes.INTEGER,
     allowNull: true,
@@ -67,19 +58,12 @@ const Asset = sequelize.define("Asset", {
       min: 0,
       max: 120,
     },
-    comment: "Warranty period in months",
   },
   warranty_end_date: {
     type: DataTypes.DATE,
     allowNull: true,
-    comment: "Automatically calculated based on purchase_date + warranty_period_months",
   },
-  
-  accessories: {
-    type: DataTypes.ENUM("Charger", "Bag", "Mouse"),
-    allowNull: true,
-  },
-  
+  // REMOVED: accessories attribute - moved to AssetAllocation model
   status: {
     type: DataTypes.ENUM("AVAILABLE", "ALLOCATED", "UNDER_REPAIR", "RETIRED"),
     defaultValue: "AVAILABLE",

@@ -32,8 +32,8 @@ const DisposedAsset = sequelize.define("DisposedAsset", {
     allowNull: true,
   },
   disposed_location: {
-    type: DataTypes.STRING(100),
-    allowNull: false,
+    type: DataTypes.ENUM("Borella", "Location 1", "Location 2"),
+    defaultValue: "Borella",
   },
   disposed_by: {
     type: DataTypes.STRING(100),
