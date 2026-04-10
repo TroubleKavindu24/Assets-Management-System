@@ -223,7 +223,6 @@ const AddAssetForm = () => {
                   <option value="Desktop PC">Desktop PC</option>
                   <option value="Monitor">Monitor</option>
                   <option value="Printer">Printer</option>
-                  <option value="Other">Other</option>
                 </select>
                 {validationErrors.asset_type && <span className="error-text">{validationErrors.asset_type}</span>}
               </div>

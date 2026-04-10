@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const { sequelize, connectDB } = require("./config/db");
 const setupAssociations = require("./models/associations");
 
@@ -14,7 +15,7 @@ const departmentsRoutes = require("./routes/departments.routes");
 
 const errorHandler = require("./middlewares/errorMiddleware");
 
-require('dotenv').config();
+require("dotenv").config();
 
 const app = express();
 
@@ -30,12 +31,12 @@ sequelize
   .sync({ alter: true })
   .then(() => {
     console.log("✅ Models synced successfully");
-    
-    // Run seeder for initial data
-    const { exec } = require('child_process');
-    exec('node seeders/20250101000000-initial-data.js', (error, stdout, stderr) => {
+
+    // Run seeder
+    const { exec } = require("child_process");
+    exec("node seeders/20250101000000-initial-data.js", (error, stdout) => {
       if (error) {
-        console.log("⚠️ Seeder not run automatically. Run manually if needed.");
+        console.log("⚠️ Seeder not run automatically.");
       } else {
         console.log(stdout);
       }
@@ -45,16 +46,22 @@ sequelize
     console.error("❌ Sync error:", err);
   });
 
-// Routes
+// API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/assets", assetRoutes);
 app.use("/api/rolemanagement", roleManageRoutes);
 app.use("/api/permissions", permissionRoutes);
 app.use("/api/departments", departmentsRoutes);
 
+// ✅ SERVE REACT BUILD (IMPORTANT)
+app.use(express.static(path.join(__dirname, "../client/build")));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../client/build", "index.html"));
+});
+
 // Error handler (LAST)
 app.use(errorHandler);
-
 
 // Server
 const PORT = process.env.PORT || 5005;
