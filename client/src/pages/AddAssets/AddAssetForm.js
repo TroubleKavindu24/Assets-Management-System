@@ -1,4 +1,3 @@
-// src/components/AddAssetForm.jsx
 import React, { useState } from 'react';
 import './AddAssetForm.css';
 
@@ -23,80 +22,55 @@ const AddAssetForm = () => {
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
 
-  const brandOptions = [
-    { value: '', label: 'Select Brand' },
-    { value: 'HP', label: 'HP' },
-    { value: 'DELL', label: 'DELL' },
-    { value: 'TOSHIBA', label: 'TOSHIBA' },
-    { value: 'Lenovo', label: 'Lenovo' },
-    { value: 'Apple', label: 'Apple' },
-    { value: 'N/A', label: 'N/A' },
-  ];
+  // ✅ Dropdowns
+  const brandOptions = ['', 'HP', 'DELL', 'TOSHIBA', 'EPSON'];
+  const osOptions = ['', 'Windows 10', 'Windows 11'];
 
-  const osOptions = [
-    { value: '', label: 'Select OS' },
-    { value: 'Windows 10', label: 'Windows 10' },
-    { value: 'Windows 11', label: 'Windows 11' },
-    { value: 'macOS', label: 'macOS' },
-    { value: 'N/A', label: 'N/A' },
-  ];
+  // ✅ Conditions
+  const isComputer = () =>
+    formData.asset_type === 'Laptop' || formData.asset_type === 'Desktop PC';
 
-  const statusOptions = [
-    { value: 'AVAILABLE', label: 'Available' },
-    { value: 'ALLOCATED', label: 'Allocated' },
-    { value: 'UNDER_REPAIR', label: 'Under Repair' },
-    { value: 'RETIRED', label: 'Retired' },
-  ];
-
-  // Helper function to check if specs section should be shown (Laptop or Desktop PC)
-  const shouldShowSpecs = () => {
-    return formData.asset_type === 'Laptop' || formData.asset_type === 'Desktop PC';
-  };
+  const isPeripheral = () =>
+    formData.asset_type === 'Monitor' || formData.asset_type === 'Printer';
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+
+    setFormData(prev => ({
       ...prev,
-      [name]: value,
+      [name]: value
     }));
-    // Clear validation error for this field when user types
+
     if (validationErrors[name]) {
-      setValidationErrors((prev) => ({
+      setValidationErrors(prev => ({
         ...prev,
         [name]: ''
       }));
     }
   };
 
+  // ✅ VALIDATION
   const validateForm = () => {
     const errors = {};
-    
-    // Required fields validation
+
     if (!formData.asset_type) {
       errors.asset_type = 'Asset type is required';
     }
+
     if (!formData.serial_no.trim()) {
       errors.serial_no = 'Serial number is required';
     }
 
-    // Validation for Laptop and Desktop PC types - specs required
-    if (formData.asset_type === 'Laptop' || formData.asset_type === 'Desktop PC') {
-      if (!formData.ram_capacity) {
-        errors.ram_capacity = 'RAM capacity is required';
-      }
-      if (!formData.hard_drive) {
-        errors.hard_drive = 'Hard drive is required';
-      }
-      if (!formData.processor) {
-        errors.processor = 'Processor is required';
-      }
+    if (isComputer()) {
+      if (!formData.ram_capacity) errors.ram_capacity = 'RAM required';
+      if (!formData.hard_drive) errors.hard_drive = 'Hard drive required';
+      if (!formData.processor) errors.processor = 'Processor required';
     }
 
-    // Warranty period validation
     if (formData.warranty_period_months) {
       const months = parseInt(formData.warranty_period_months);
       if (isNaN(months) || months < 0 || months > 120) {
-        errors.warranty_period_months = 'Warranty period must be between 0 and 120 months';
+        errors.warranty_period_months = 'Warranty must be 0–120 months';
       }
     }
 
@@ -104,25 +78,25 @@ const AddAssetForm = () => {
     return Object.keys(errors).length === 0;
   };
 
+  // ✅ SUBMIT
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) {
-      setError('Please fix the validation errors');
-      setTimeout(() => setError(''), 3000);
+      setError('Please fix validation errors');
       return;
     }
 
-    setMessage('');
-    setError('');
     setLoading(true);
+    setError('');
+    setMessage('');
 
     try {
       const token = localStorage.getItem('token');
-      
+
       const response = await fetch('http://localhost:5005/api/assets/add-asset', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
@@ -130,45 +104,38 @@ const AddAssetForm = () => {
           asset_type: formData.asset_type,
           serial_no: formData.serial_no.trim(),
           brand: formData.brand || 'N/A',
-          os: formData.os || 'N/A',
+          os: isPeripheral() ? null : (formData.os || 'N/A'),
           purchase_date: formData.purchase_date || null,
-          ram_capacity: shouldShowSpecs() ? formData.ram_capacity : null,
-          hard_drive: shouldShowSpecs() ? formData.hard_drive : null,
-          processor: shouldShowSpecs() ? formData.processor : null,
+          ram_capacity: isComputer() ? formData.ram_capacity : null,
+          hard_drive: isComputer() ? formData.hard_drive : null,
+          processor: isComputer() ? formData.processor : null,
           model: formData.model || null,
-          gen: formData.gen || null,
-          warranty_period_months: formData.warranty_period_months ? parseInt(formData.warranty_period_months) : null,
-          status: formData.status,
-        }),
+          gen: isPeripheral() ? null : (formData.gen || null),
+          warranty_period_months: formData.warranty_period_months
+            ? parseInt(formData.warranty_period_months)
+            : null,
+          status: formData.status
+        })
       });
 
       const result = await response.json();
 
       if (!response.ok) {
+        // ✅ Duplicate serial error
+        if (result.message && result.message.includes('serial')) {
+          setValidationErrors(prev => ({
+            ...prev,
+            serial_no: 'Serial number already exists'
+          }));
+        }
         throw new Error(result.message || 'Failed to add asset');
       }
 
       setMessage('Asset added successfully!');
-      setFormData({
-        asset_type: '',
-        serial_no: '',
-        brand: '',
-        os: '',
-        purchase_date: '',
-        ram_capacity: '',
-        hard_drive: '',
-        processor: '',
-        model: '',
-        gen: '',
-        warranty_period_months: '',
-        status: 'AVAILABLE'
-      });
-      setValidationErrors({});
+      handleReset();
 
-      setTimeout(() => setMessage(''), 3000);
     } catch (err) {
-      setError(err.message || 'Something went wrong');
-      setTimeout(() => setError(''), 3000);
+      setError(err.message || 'Error occurred');
     } finally {
       setLoading(false);
     }
@@ -194,30 +161,24 @@ const AddAssetForm = () => {
 
   return (
     <div className="form-page">
-      <div>
-        <h2>Add New Asset</h2>
-      </div>
+      <h2>Add New Asset</h2>
+
       <div className="form-wrapper">
         <div className="form-container">
           <form onSubmit={handleSubmit}>
+
             <div className="form-para">
-              <p>Fill in the details below to add a new asset to inventory</p>
+              <p>Fill in the details below to add a new asset</p>
             </div>
-            
+
             {message && <div className="message success">{message}</div>}
             {error && <div className="message error">{error}</div>}
-            
-            {/* Row 1: Asset Type and Serial Number */}
+
+            {/* Row 1 */}
             <div className="form-row">
               <div className="form-group">
-                <label>Asset Type <span className="required">*</span></label>
-                <select
-                  name="asset_type"
-                  value={formData.asset_type}
-                  onChange={handleChange}
-                  required
-                  className="form-control"
-                >
+                <label>Asset Type *</label>
+                <select name="asset_type" value={formData.asset_type} onChange={handleChange} className="form-control">
                   <option value="">Select Type</option>
                   <option value="Laptop">Laptop</option>
                   <option value="Desktop PC">Desktop PC</option>
@@ -228,191 +189,109 @@ const AddAssetForm = () => {
               </div>
 
               <div className="form-group">
-                <label>Serial Number <span className="required">*</span></label>
+                <label>Serial Number *</label>
                 <input
                   type="text"
                   name="serial_no"
                   value={formData.serial_no}
                   onChange={handleChange}
-                  required
-                  placeholder="Enter serial number"
                   className="form-control"
                 />
                 {validationErrors.serial_no && <span className="error-text">{validationErrors.serial_no}</span>}
               </div>
             </div>
 
-            {/* Row 2: Brand and OS */}
+            {/* Row 2 */}
             <div className="form-row">
               <div className="form-group">
                 <label>Brand</label>
-                <select
-                  name="brand"
-                  value={formData.brand}
-                  onChange={handleChange}
-                  className="form-control"
-                >
-                  {brandOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
+                <select name="brand" value={formData.brand} onChange={handleChange} className="form-control">
+                  {brandOptions.map((b, i) => (
+                    <option key={i} value={b}>{b || 'Select Brand'}</option>
                   ))}
                 </select>
               </div>
 
-              <div className="form-group">
-                <label>Operating System</label>
-                <select
-                  name="os"
-                  value={formData.os}
-                  onChange={handleChange}
-                  className="form-control"
-                >
-                  {osOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {!isPeripheral() && (
+                <div className="form-group">
+                  <label>Operating System</label>
+                  <select name="os" value={formData.os} onChange={handleChange} className="form-control">
+                    {osOptions.map((o, i) => (
+                      <option key={i} value={o}>{o || 'Select OS'}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
-            {/* Row 3: Model and Generation */}
+            {/* Row 3 */}
             <div className="form-row">
               <div className="form-group">
                 <label>Model</label>
-                <input
-                  type="text"
-                  name="model"
-                  value={formData.model}
-                  onChange={handleChange}
-                  placeholder="e.g., EliteBook, OptiPlex, Precision"
-                  className="form-control"
-                />
+                <input name="model" value={formData.model} onChange={handleChange} className="form-control" />
               </div>
 
-              <div className="form-group">
-                <label>Generation</label>
-                <input
-                  type="text"
-                  name="gen"
-                  value={formData.gen}
-                  onChange={handleChange}
-                  placeholder="e.g., 11th Gen, 12th Gen, M2"
-                  className="form-control"
-                />
-              </div>
+              {!isPeripheral() && (
+                <div className="form-group">
+                  <label>Generation</label>
+                  <input name="gen" value={formData.gen} onChange={handleChange} className="form-control" />
+                </div>
+              )}
             </div>
 
-            {/* Row 4: Purchase Date and Warranty Period */}
+            {/* Row 4 */}
             <div className="form-row">
               <div className="form-group">
                 <label>Purchase Date</label>
-                <input
-                  type="date"
-                  name="purchase_date"
-                  value={formData.purchase_date}
-                  onChange={handleChange}
-                  className="form-control"
-                />
+                <input type="date" name="purchase_date" value={formData.purchase_date} onChange={handleChange} className="form-control" />
               </div>
 
               <div className="form-group">
-                <label>Warranty Period (Months)</label>
-                <input
-                  type="number"
-                  name="warranty_period_months"
-                  value={formData.warranty_period_months}
-                  onChange={handleChange}
-                  placeholder="e.g., 12, 24, 36"
-                  className="form-control"
-                  min="0"
-                  max="120"
-                />
+                <label>Warranty (Months)</label>
+                <input type="number" name="warranty_period_months" value={formData.warranty_period_months} onChange={handleChange} className="form-control" />
                 {validationErrors.warranty_period_months && <span className="error-text">{validationErrors.warranty_period_months}</span>}
               </div>
             </div>
 
-            {/* Specs Section - Shows only for Laptop and Desktop PC */}
-            {shouldShowSpecs() && (
+            {/* Specs */}
+            {isComputer() && (
               <div className="specs-section">
                 <div className="form-section-title">
                   <h4>Hardware Specifications</h4>
                 </div>
-                
+
                 <div className="form-row">
                   <div className="form-group">
-                    <label>RAM Capacity <span className="required">*</span></label>
-                    <input
-                      type="text"
-                      name="ram_capacity"
-                      value={formData.ram_capacity}
-                      onChange={handleChange}
-                      placeholder="e.g., 8GB, 16GB, 32GB, 64GB"
-                      className="form-control"
-                    />
+                    <label>RAM *</label>
+                    <input name="ram_capacity" value={formData.ram_capacity} onChange={handleChange} className="form-control" />
                     {validationErrors.ram_capacity && <span className="error-text">{validationErrors.ram_capacity}</span>}
                   </div>
 
                   <div className="form-group">
-                    <label>Hard Drive <span className="required">*</span></label>
-                    <input
-                      type="text"
-                      name="hard_drive"
-                      value={formData.hard_drive}
-                      onChange={handleChange}
-                      placeholder="e.g., 256GB SSD, 512GB SSD, 1TB HDD, 2TB SSD"
-                      className="form-control"
-                    />
+                    <label>Hard Drive *</label>
+                    <input name="hard_drive" value={formData.hard_drive} onChange={handleChange} className="form-control" />
                     {validationErrors.hard_drive && <span className="error-text">{validationErrors.hard_drive}</span>}
                   </div>
                 </div>
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Processor <span className="required">*</span></label>
-                    <input
-                      type="text"
-                      name="processor"
-                      value={formData.processor}
-                      onChange={handleChange}
-                      placeholder="e.g., Intel Core i5-1240P, Intel Core i7-13700H, AMD Ryzen 7 7840U, Apple M2"
-                      className="form-control"
-                    />
-                    {validationErrors.processor && <span className="error-text">{validationErrors.processor}</span>}
-                  </div>
+                <div className="form-group">
+                  <label>Processor *</label>
+                  <input name="processor" value={formData.processor} onChange={handleChange} className="form-control" />
+                  {validationErrors.processor && <span className="error-text">{validationErrors.processor}</span>}
                 </div>
               </div>
             )}
 
-            {/* Status Selection */}
-            <div className="form-row">
-              <div className="form-group">
-                <label>Status</label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  className="form-control"
-                >
-                  {statusOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Form Actions */}
+            {/* Buttons */}
             <div className="form-actions">
-              <button type="submit" disabled={loading} className="btn-primary">
+              <button type="submit" className="btn-primary" disabled={loading}>
                 {loading ? 'Adding...' : 'Add Asset'}
               </button>
-              <button type="button" onClick={handleReset} className="btn-secondary">
-                Clear Form
+              <button type="button" className="btn-secondary" onClick={handleReset}>
+                Clear
               </button>
             </div>
+
           </form>
         </div>
       </div>

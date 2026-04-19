@@ -1,4 +1,3 @@
-// middleware/permissionCheck.js
 const Permission = require("../models/Permission");
 const { ROLE_DEFAULT_PERMISSIONS } = require("../constants/permissions.constants");
 
@@ -6,130 +5,124 @@ const { ROLE_DEFAULT_PERMISSIONS } = require("../constants/permissions.constants
  * Check if user has specific permission
  */
 const hasPermission = async (userId, permissionType, userRole) => {
-  // SUPER_ADMIN has all permissions
-  if (userRole === "SUPER_ADMIN") {
-    return true;
-  }
-  
-  // ADMIN has all asset management permissions by default
-  if (userRole === "ADMIN") {
-    const adminPermissions = ROLE_DEFAULT_PERMISSIONS.ADMIN;
-    return adminPermissions.includes(permissionType);
-  }
-  
-  // Check custom permissions for STAFF
-  const permission = await Permission.findOne({
-    where: {
-      user_id: userId,
-      permission_type: permissionType,
-      status: "ACTIVE"
+  try {
+    if (userRole === "SUPER_ADMIN") return true;
+
+    if (userRole === "ADMIN") {
+      return ROLE_DEFAULT_PERMISSIONS.ADMIN.includes(permissionType);
     }
-  });
-  
-  return !!permission;
+
+    const permission = await Permission.findOne({
+      where: {
+        user_id: userId,
+        permission_type: permissionType,
+        status: "ACTIVE"
+      }
+    });
+
+    return !!permission;
+  } catch (error) {
+    console.error("hasPermission error:", error);
+    return false;
+  }
 };
 
 /**
- * Get user's effective permissions
+ * Get user permissions
  */
 const getUserPermissions = async (userId, userRole) => {
-  if (userRole === "SUPER_ADMIN") {
-    return ROLE_DEFAULT_PERMISSIONS.SUPER_ADMIN;
+  try {
+    if (userRole === "SUPER_ADMIN") return ROLE_DEFAULT_PERMISSIONS.SUPER_ADMIN;
+
+    if (userRole === "ADMIN") return ROLE_DEFAULT_PERMISSIONS.ADMIN;
+
+    const permissions = await Permission.findAll({
+      where: {
+        user_id: userId,
+        status: "ACTIVE"
+      },
+      attributes: ["permission_type"]
+    });
+
+    return permissions.map(p => p.permission_type);
+  } catch (error) {
+    console.error("getUserPermissions error:", error);
+    return [];
   }
-  
-  if (userRole === "ADMIN") {
-    return ROLE_DEFAULT_PERMISSIONS.ADMIN;
-  }
-  
-  // Get STAFF custom permissions
-  const permissions = await Permission.findAll({
-    where: {
-      user_id: userId,
-      status: "ACTIVE"
-    },
-    attributes: ["permission_type"]
-  });
-  
-  return permissions.map(p => p.permission_type);
 };
 
 /**
- * Middleware to check permission for routes
+ * Middleware: check single permission
  */
 const checkPermission = (permissionType) => {
   return async (req, res, next) => {
     try {
-      const userId = req.user.user_id;
-      const userRole = req.user.role;
-      
-      const hasAccess = await hasPermission(userId, permissionType, userRole);
-      
+      if (!req.user) {
+        return res.status(401).json({ success: false, message: "Unauthorized" });
+      }
+
+      const hasAccess = await hasPermission(
+        req.user.user_id,
+        permissionType,
+        req.user.role
+      );
+
       if (!hasAccess) {
         return res.status(403).json({
           success: false,
-          message: `Access denied. You don't have permission to ${permissionType.replace(/_/g, ' ').toLowerCase()}`,
-          required_permission: permissionType
+          message: `Access denied for ${permissionType}`
         });
       }
-      
+
       next();
     } catch (error) {
-      console.error("Permission check error:", error);
-      return res.status(500).json({ 
-        success: false,
-        message: "Permission check failed",
-        error: error.message 
-      });
+      console.error("Permission middleware error:", error);
+      res.status(500).json({ success: false, message: "Permission check failed" });
     }
   };
 };
 
 /**
- * Check if user has any of the listed permissions
+ * Middleware: check multiple permissions
  */
 const checkAnyPermission = (permissionTypes) => {
   return async (req, res, next) => {
     try {
-      const userId = req.user.user_id;
-      const userRole = req.user.role;
-      
-      // SUPER_ADMIN has all permissions
-      if (userRole === "SUPER_ADMIN") {
-        return next();
+      if (!req.user) {
+        return res.status(401).json({ success: false, message: "Unauthorized" });
       }
-      
-      // ADMIN has all asset management permissions
-      if (userRole === "ADMIN") {
-        const adminPermissions = ROLE_DEFAULT_PERMISSIONS.ADMIN;
-        const hasAny = permissionTypes.some(p => adminPermissions.includes(p));
+
+      if (req.user.role === "SUPER_ADMIN") return next();
+
+      if (req.user.role === "ADMIN") {
+        const hasAny = permissionTypes.some(p =>
+          ROLE_DEFAULT_PERMISSIONS.ADMIN.includes(p)
+        );
         if (hasAny) return next();
       }
-      
-      // Check STAFF custom permissions
-      for (const permissionType of permissionTypes) {
-        const hasAccess = await hasPermission(userId, permissionType, userRole);
-        if (hasAccess) {
-          return next();
-        }
+
+      for (const type of permissionTypes) {
+        const hasAccess = await hasPermission(
+          req.user.user_id,
+          type,
+          req.user.role
+        );
+
+        if (hasAccess) return next();
       }
-      
+
       return res.status(403).json({
         success: false,
-        message: `Access denied. You need at least one of these permissions: ${permissionTypes.join(", ")}`
+        message: "No required permissions"
       });
-      
+
     } catch (error) {
-      console.error("Permission check error:", error);
-      return res.status(500).json({ 
-        success: false,
-        message: "Permission check failed",
-        error: error.message 
-      });
+      console.error("checkAnyPermission error:", error);
+      res.status(500).json({ success: false, message: "Permission check failed" });
     }
   };
 };
 
-// Export all functions
 module.exports = {
   hasPermission,
   getUserPermissions,

@@ -20,7 +20,11 @@ router.get("/expiring-warranty", checkPermission("VIEW_ASSETS_LIST"), assetContr
 router.get("/allocations/asset/:asset_id", checkPermission("VIEW_ALLOCATIONS_LIST"), assetController.getAllocationHistory);
 router.get("/allocations/branch/:branch_id", checkPermission("VIEW_ALLOCATIONS_LIST"), assetController.getAllocationsByBranch);
 router.get("/serial/:serial_no/history", checkPermission("VIEW_ALLOCATIONS_LIST"), assetController.getAllocationHistoryBySerialNo);
+// router.post("/asset-handover/:allocation_id", checkPermission("MANAGE_HANDOVER"), assetController.asset_handover);
+
 router.post("/asset-handover/:allocation_id", checkPermission("MANAGE_HANDOVER"), assetController.asset_handover);
+
+router.get("/serial/:serialNo", assetController.getAssetBySerial);
 
 // Disposal routes
 router.post("/dispose", checkPermission("DISPOSE_ASSET"), disposedAssetController.disposeAsset);

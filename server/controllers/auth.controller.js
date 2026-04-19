@@ -2,133 +2,95 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { Op } = require("sequelize");
 
-// User login
-exports.login = async (req, res) => {
-  try {
-    const { user_name, password } = req.body;
-
-    if (!user_name || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Username and password required"
-      });
-    }
-
-    const user = await User.findOne({ where: { user_name } });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found"
-      });
-    }
-
-    // Check if user is active
-    if (user.is_active === false) {
-      return res.status(401).json({
-        success: false,
-        message: "Account is deactivated. Please contact SUPER_ADMIN."
-      });
-    }
-
-    // Plain password check
-    if (user.password !== password) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid password"
-      });
-    }
-
-    // Generate JWT
-    const token = jwt.sign(
-      {
-        user_id: user.user_id,
-        user_name: user.user_name,
-        role: user.role,
-        department_name: user.department_name
-      },
-      process.env.JWT_SECRET || "your-secret-key",
-      { expiresIn: "1d" }
-    );
-
-    res.json({
-      success: true,
-      message: "Login successful",
-      token,
-      user: {
-        user_id: user.user_id,
-        user_name: user.user_name,
-        role: user.role,
-        department_name: user.department_name,
-        is_active: user.is_active
-      },
-    });
-  } catch (error) {
-    console.error("Login Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message,
-    });
-  }
+// Generate JWT
+const generateToken = (user) => {
+  return jwt.sign(
+    {
+      user_id: user.user_id,
+      role: user.role,
+    },
+    process.env.JWT_SECRET || "secret123",
+    { expiresIn: "1d" }
+  );
 };
 
-// Register new user (SUPER_ADMIN only)
+// ================= REGISTER =================
 exports.register = async (req, res) => {
   try {
     const { user_name, password, role, department_name } = req.body;
 
-    if (!user_name || !password || !role || !department_name) {
+    if (!user_name || !password || !department_name) {
       return res.status(400).json({
         success: false,
-        message: "All fields are required"
+        message: "All fields are required",
       });
     }
 
-    // Validate role (prevent creating SUPER_ADMIN)
-    const allowedRoles = ["ADMIN", "manager", "user"];
-    if (!allowedRoles.includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid role. Allowed roles: ADMIN, manager, user"
-      });
-    }
-
-    // Check if user already exists
     const existingUser = await User.findOne({ where: { user_name } });
+
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: "Username already exists"
+        message: "Username already exists",
       });
     }
 
-    // Create new user
-    const newUser = await User.create({
+    const user = await User.create({
       user_name,
-      password, // Plain text as per your requirement
-      role,
+      password, // ❌ plain password
+      role: role || "STAFF",
       department_name,
-      is_active: true
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "User registered successfully",
-      user: {
-        user_id: newUser.user_id,
-        user_name: newUser.user_name,
-        role: newUser.role,
-        department_name: newUser.department_name,
-        is_active: newUser.is_active
-      }
+      data: user,
     });
   } catch (error) {
-    console.error("Registration Error:", error);
-    res.status(500).json({
+    console.error("Register error:", error);
+    return res.status(500).json({
       success: false,
-      message: "Server error",
-      error: error.message
+      message: "Register failed",
+    });
+  }
+};
+
+// ================= LOGIN =================
+exports.login = async (req, res) => {
+  try {
+    const { user_name, password } = req.body;
+
+    const user = await User.findOne({ where: { user_name } });
+
+    if (!user || !user.is_active) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found or inactive",
+      });
+    }
+
+    // ❌ plain password compare
+    if (password !== user.password) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials",
+      });
+    }
+
+    const token = generateToken(user);
+
+    return res.json({
+      success: true,
+      message: "Login successful",
+      token,
+      user,
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Login failed",
     });
   }
 };

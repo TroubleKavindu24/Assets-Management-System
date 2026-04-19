@@ -158,7 +158,6 @@ exports.allocateAsset = async (req, res) => {
     if (!ip_address) validationErrors.push("IP Address is required");
     if (!branch_id) validationErrors.push("Branch is required");
     if (!department_id) validationErrors.push("Department is required");
-    if (!allocated_by) validationErrors.push("Allocated by user is required");
 
     // Desktop PC specific validations
     if (asset.asset_type === "Desktop PC") {
@@ -202,7 +201,7 @@ exports.allocateAsset = async (req, res) => {
       ip_address,
       branch_id,
       department_id,
-      allocated_by,
+      allocated_by: req.user.user_id, // ✅ FIXED
       allocated_date: allocated_date || new Date(),
     };
 
@@ -887,38 +886,174 @@ exports.getAllocationHistoryBySerialNo = async (req, res) => {
     });
   }
 };
+// exports.asset_handover = async (req, res) => {
+//   try {
+//     const { allocation_id } = req.params;
+//     const { return_date, return_condition, remarks } = req.body;
+
+//     // Validate allocation_id
+//     if (!allocation_id || isNaN(allocation_id)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Invalid allocation ID provided",
+//       });
+//     }
+
+//     // Find allocation with proper alias
+//     const allocation = await AssetAllocation.findByPk(allocation_id, {
+//       include: [
+//         { 
+//           model: Asset, 
+//           as: "asset"  // FIXED: Added 'as' alias
+//         }
+//       ],
+//     });
+
+//     if (!allocation) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Allocation record not found",
+//       });
+//     }
+
+//     // Check if already returned
+//     if (allocation.return_date) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Asset already returned",
+//         data: {
+//           allocation_id: allocation.allocation_id,
+//           return_date: allocation.return_date,
+//           return_condition: allocation.return_condition
+//         }
+//       });
+//     }
+
+//     const transaction = await Asset.sequelize.transaction();
+
+//     try {
+//       // Update allocation with return date
+//       const updateData = {
+//         return_date: return_date || new Date(),
+//         return_condition: return_condition || "Good",
+//         return_remarks: remarks || null,
+//       };
+      
+//       await allocation.update(updateData, { transaction });
+
+//       // Update asset status back to AVAILABLE
+//       if (allocation.asset) {
+//         await allocation.asset.update({ status: "AVAILABLE" }, { transaction });
+//       }
+
+//       // If monitor was allocated, return it too
+//       if (allocation.allocated_monitor_id) {
+//         const monitor = await Asset.findByPk(allocation.allocated_monitor_id);
+//         if (monitor && monitor.status === "ALLOCATED") {
+//           await monitor.update({ status: "AVAILABLE" }, { transaction });
+//         }
+//       }
+
+//       // Commit the transaction
+//       await transaction.commit();
+
+//       // Fetch updated allocation with all details
+//       const updatedAllocation = await AssetAllocation.findByPk(allocation_id, {
+//         include: [
+//           { 
+//             model: Asset, 
+//             as: "asset",
+//             attributes: ["asset_id", "serial_no", "asset_type", "brand", "model", "status"]
+//           },
+//           { 
+//             model: Asset, 
+//             as: "allocated_monitor",
+//             attributes: ["asset_id", "serial_no", "brand", "model"],
+//             required: false
+//           },
+//           { 
+//             model: Branch, 
+//             as: "branch",
+//             attributes: ["branch_id", "location"],
+//             required: false
+//           },
+//           { 
+//             model: Department, 
+//             as: "department",
+//             attributes: ["department_id", "department_name"],
+//             required: false
+//           }
+//         ],
+//       });
+
+//       res.status(200).json({
+//         success: true,
+//         message: "Asset returned successfully. Status updated to AVAILABLE",
+//         data: {
+//           allocation: updatedAllocation,
+//           asset_status: "AVAILABLE",
+//           return_details: updateData
+//         },
+//       });
+
+//     } catch (error) {
+//       // Only rollback if transaction is not already finished
+//       if (transaction && transaction.finished !== 'commit' && transaction.finished !== 'rollback') {
+//         await transaction.rollback();
+//       }
+//       console.error("Transaction error:", error);
+//       throw error;
+//     }
+
+//   } catch (error) {
+//     console.error("Error returning asset:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Error returning asset",
+//       error: error.message,
+//     });
+//   }
+// };
+
+
 exports.asset_handover = async (req, res) => {
+  const transaction = await Asset.sequelize.transaction();
+
   try {
     const { allocation_id } = req.params;
     const { return_date, return_condition, remarks } = req.body;
 
-    // Validate allocation_id
+    // ================= VALIDATION =================
     if (!allocation_id || isNaN(allocation_id)) {
+      await transaction.rollback();
       return res.status(400).json({
         success: false,
         message: "Invalid allocation ID provided",
       });
     }
 
-    // Find allocation with proper alias
+    // ================= FIND ALLOCATION =================
     const allocation = await AssetAllocation.findByPk(allocation_id, {
       include: [
-        { 
-          model: Asset, 
-          as: "asset"  // FIXED: Added 'as' alias
-        }
+        { model: Asset, as: "asset" },
+        { model: Asset, as: "allocated_monitor", required: false },
+        { model: Branch, as: "branch", required: false },
+        { model: Department, as: "department", required: false }
       ],
+      transaction
     });
 
     if (!allocation) {
+      await transaction.rollback();
       return res.status(404).json({
         success: false,
         message: "Allocation record not found",
       });
     }
 
-    // Check if already returned
+    // ================= ALREADY RETURNED =================
     if (allocation.return_date) {
+      await transaction.rollback();
       return res.status(400).json({
         success: false,
         message: "Asset already returned",
@@ -930,91 +1065,135 @@ exports.asset_handover = async (req, res) => {
       });
     }
 
-    const transaction = await Asset.sequelize.transaction();
+    // ================= PREPARE UPDATE =================
+    const updateData = {
+      return_date: return_date || new Date(),
+      return_condition: return_condition || "Good",
+      return_remarks: remarks || null,
+    };
 
-    try {
-      // Update allocation with return date
-      const updateData = {
-        return_date: return_date || new Date(),
-        return_condition: return_condition || "Good",
-        return_remarks: remarks || null,
-      };
-      
-      await allocation.update(updateData, { transaction });
+    // ================= UPDATE ALLOCATION =================
+    await allocation.update(updateData, { transaction });
 
-      // Update asset status back to AVAILABLE
-      if (allocation.asset) {
-        await allocation.asset.update({ status: "AVAILABLE" }, { transaction });
-      }
-
-      // If monitor was allocated, return it too
-      if (allocation.allocated_monitor_id) {
-        const monitor = await Asset.findByPk(allocation.allocated_monitor_id);
-        if (monitor && monitor.status === "ALLOCATED") {
-          await monitor.update({ status: "AVAILABLE" }, { transaction });
-        }
-      }
-
-      // Commit the transaction
-      await transaction.commit();
-
-      // Fetch updated allocation with all details
-      const updatedAllocation = await AssetAllocation.findByPk(allocation_id, {
-        include: [
-          { 
-            model: Asset, 
-            as: "asset",
-            attributes: ["asset_id", "serial_no", "asset_type", "brand", "model", "status"]
-          },
-          { 
-            model: Asset, 
-            as: "allocated_monitor",
-            attributes: ["asset_id", "serial_no", "brand", "model"],
-            required: false
-          },
-          { 
-            model: Branch, 
-            as: "branch",
-            attributes: ["branch_id", "location"],
-            required: false
-          },
-          { 
-            model: Department, 
-            as: "department",
-            attributes: ["department_id", "department_name"],
-            required: false
-          }
-        ],
-      });
-
-      res.status(200).json({
-        success: true,
-        message: "Asset returned successfully. Status updated to AVAILABLE",
-        data: {
-          allocation: updatedAllocation,
-          asset_status: "AVAILABLE",
-          return_details: updateData
-        },
-      });
-
-    } catch (error) {
-      // Only rollback if transaction is not already finished
-      if (transaction && transaction.finished !== 'commit' && transaction.finished !== 'rollback') {
-        await transaction.rollback();
-      }
-      console.error("Transaction error:", error);
-      throw error;
+    // ================= UPDATE MAIN ASSET =================
+    if (allocation.asset) {
+      await allocation.asset.update(
+        { status: "AVAILABLE" },
+        { transaction }
+      );
     }
 
+    // ================= RETURN MONITOR =================
+    if (allocation.allocated_monitor_id) {
+      const monitor = await Asset.findByPk(allocation.allocated_monitor_id, { transaction });
+
+      if (monitor && monitor.status === "ALLOCATED") {
+        await monitor.update({ status: "AVAILABLE" }, { transaction });
+      }
+    }
+
+    // ================= COMMIT =================
+    await transaction.commit();
+
+    // ================= FETCH UPDATED =================
+    const updatedAllocation = await AssetAllocation.findByPk(allocation_id, {
+      include: [
+        {
+          model: Asset,
+          as: "asset",
+          attributes: ["asset_id", "serial_no", "asset_type", "brand", "model", "status"]
+        },
+        {
+          model: Asset,
+          as: "allocated_monitor",
+          attributes: ["asset_id", "serial_no", "brand", "model"],
+          required: false
+        },
+        {
+          model: Branch,
+          as: "branch",
+          attributes: ["branch_id", "location"],
+          required: false
+        },
+        {
+          model: Department,
+          as: "department",
+          attributes: ["department_id", "department_name"],
+          required: false
+        }
+      ]
+    });
+
+    // ================= RESPONSE =================
+    return res.status(200).json({
+      success: true,
+      message: "Asset returned successfully",
+      data: {
+        allocation: updatedAllocation,
+        asset_status: "AVAILABLE",
+        return_details: updateData
+      }
+    });
+
   } catch (error) {
+    // ================= ROLLBACK SAFE =================
+    if (transaction && transaction.finished !== 'commit' && transaction.finished !== 'rollback') {
+      await transaction.rollback();
+    }
+
     console.error("Error returning asset:", error);
-    res.status(500).json({
+
+    return res.status(500).json({
       success: false,
       message: "Error returning asset",
       error: error.message,
     });
   }
 };
+exports.getAssetBySerial = async (req, res) => {
+  try {
+    const { serialNo } = req.params;
+
+    const asset = await Asset.findOne({
+      where: { serial_no: serialNo }
+    });
+
+    if (!asset) {
+      return res.status(404).json({
+        success: false,
+        message: "Asset not found"
+      });
+    }
+
+    const allocation = await AssetAllocation.findOne({
+      where: {
+        asset_id: asset.asset_id,
+        return_date: null
+      },
+      include: [
+        { model: Branch, as: "branch" },
+        { model: Department, as: "department" }
+      ]
+    });
+
+    return res.status(200).json({
+      success: true,
+      asset,
+      allocation
+    });
+
+  } catch (error) {
+    console.error("Error fetching asset:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching asset",
+      error: error.message
+    });
+  }
+};
+
+
+
 
 exports.disposeAsset = async (req, res) => {
   const transaction = await Asset.sequelize.transaction();
@@ -1635,145 +1814,7 @@ exports.restoreDisposedAsset = async (req, res) => {
 
 
 
-exports.disposeAsset = async (req, res) => {
-  try {
-    const {
-      asset_id,
-      serial_no,
-      disposed_location,
-      disposed_reason
-    } = req.body;
 
-    // Validation
-    if (!asset_id || !serial_no || !disposed_location) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required fields: asset_id, serial_no, disposed_location"
-      });
-    }
-
-    // Validate location (update with your actual locations)
-    const validLocations = ["Boralla", "Colombo", "Kandy", "Galle"];
-    if (!validLocations.includes(disposed_location)) {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid disposal location. Allowed: ${validLocations.join(", ")}`
-      });
-    }
-
-    // Find the asset
-    const asset = await Asset.findOne({
-      where: { asset_id, serial_no }
-    });
-
-    if (!asset) {
-      return res.status(404).json({ 
-        success: false,
-        message: "Asset not found" 
-      });
-    }
-
-    // Check if already disposed
-    if (asset.status === "RETIRED") {
-      return res.status(400).json({ 
-        success: false,
-        message: "Asset has already been disposed" 
-      });
-    }
-
-    // Get disposed_by from request or default
-    const disposed_by = req.body.disposed_by || "System Admin";
-
-    // Start transaction
-    const transaction = await Asset.sequelize.transaction();
-
-    try {
-      // Create disposed asset record
-      const disposedAsset = await DisposedAsset.create({
-        asset_id: asset.asset_id,
-        serial_no: asset.serial_no,
-        asset_type: asset.asset_type,
-        brand: asset.brand,
-        os: asset.os,
-        purchase_date: asset.purchase_date,
-        disposed_location,
-        disposed_by,
-        disposed_date: new Date(),
-        disposed_reason: disposed_reason || null
-      }, { transaction });
-
-      // If asset was allocated, update allocation with return date
-      if (asset.status === "ALLOCATED") {
-        const allocation = await AssetAllocation.findOne({
-          where: {
-            asset_id: asset.asset_id,
-            return_date: null
-          },
-          transaction
-        });
-
-        if (allocation) {
-          await allocation.update({
-            return_date: new Date(),
-            return_remarks: `DISPOSED: ${disposed_reason || 'No reason provided'}`
-          }, { transaction });
-        }
-      }
-
-      // Update asset status to RETIRED
-      await asset.update({ 
-        status: "RETIRED" 
-      }, { transaction });
-
-      // Commit the transaction
-      await transaction.commit();
-
-      return res.status(200).json({
-        success: true,
-        message: "Asset disposed successfully",
-        data: {
-          disposed_asset: disposedAsset,
-          asset_status: asset.status
-        }
-      });
-
-    } catch (error) {
-      // Only rollback if transaction is not already finished
-      if (transaction && transaction.finished !== 'commit' && transaction.finished !== 'rollback') {
-        await transaction.rollback();
-      }
-      throw error;
-    }
-
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message
-    });
-  }
-};
-exports.getDisposedAssets = async (req, res) => {
-  try {
-    const disposedAssets = await DisposedAsset.findAll({
-      order: [["disposed_date", "DESC"]]
-    });
-
-    return res.status(200).json({
-      success: true,
-      count: disposedAssets.length,
-      data: disposedAssets
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch disposed assets",
-      error: error.message
-    });
-  }
-};
 
 exports.updateAsset = async (req, res) => {
   try {
@@ -1871,116 +1912,116 @@ exports.deleteAsset = async (req, res) => {
 };
 
 
-exports.bulkDisposeAssets = async (req, res) => {
-  const transaction = await Asset.sequelize.transaction();
+// exports.bulkDisposeAssets = async (req, res) => {
+//   const transaction = await Asset.sequelize.transaction();
   
-  try {
-    const { asset_ids, disposed_location, disposed_reason, disposed_by } = req.body;
+//   try {
+//     const { asset_ids, disposed_location, disposed_reason, disposed_by } = req.body;
 
-    if (!asset_ids || !Array.isArray(asset_ids) || asset_ids.length === 0) {
-      await transaction.rollback();
-      return res.status(400).json({
-        success: false,
-        message: "Please provide an array of asset IDs to dispose",
-      });
-    }
+//     if (!asset_ids || !Array.isArray(asset_ids) || asset_ids.length === 0) {
+//       await transaction.rollback();
+//       return res.status(400).json({
+//         success: false,
+//         message: "Please provide an array of asset IDs to dispose",
+//       });
+//     }
 
-    const validLocations = ["Boralla", "Colombo", "Kandy", "Galle"];
-    if (!validLocations.includes(disposed_location)) {
-      await transaction.rollback();
-      return res.status(400).json({
-        success: false,
-        message: `Invalid disposal location. Allowed: ${validLocations.join(", ")}`,
-      });
-    }
+//     const validLocations = ["Boralla", "Colombo", "Kandy", "Galle"];
+//     if (!validLocations.includes(disposed_location)) {
+//       await transaction.rollback();
+//       return res.status(400).json({
+//         success: false,
+//         message: `Invalid disposal location. Allowed: ${validLocations.join(", ")}`,
+//       });
+//     }
 
-    const results = [];
-    const errors = [];
+//     const results = [];
+//     const errors = [];
 
-    for (const asset_id of asset_ids) {
-      try {
-        const asset = await Asset.findByPk(asset_id, { transaction });
+//     for (const asset_id of asset_ids) {
+//       try {
+//         const asset = await Asset.findByPk(asset_id, { transaction });
         
-        if (!asset) {
-          errors.push({ asset_id, error: "Asset not found" });
-          continue;
-        }
+//         if (!asset) {
+//           errors.push({ asset_id, error: "Asset not found" });
+//           continue;
+//         }
 
-        if (asset.status === "RETIRED") {
-          errors.push({ asset_id, error: "Asset already disposed" });
-          continue;
-        }
+//         if (asset.status === "RETIRED") {
+//           errors.push({ asset_id, error: "Asset already disposed" });
+//           continue;
+//         }
 
-        // Create disposed asset record
-        await DisposedAsset.create({
-          asset_id: asset.asset_id,
-          serial_no: asset.serial_no,
-          asset_type: asset.asset_type,
-          brand: asset.brand,
-          os: asset.os,
-          purchase_date: asset.purchase_date,
-          disposed_location,
-          disposed_by: disposed_by || "System Admin",
-          disposed_date: new Date(),
-          disposed_reason: disposed_reason || null,
-        }, { transaction });
+//         // Create disposed asset record
+//         await DisposedAsset.create({
+//           asset_id: asset.asset_id,
+//           serial_no: asset.serial_no,
+//           asset_type: asset.asset_type,
+//           brand: asset.brand,
+//           os: asset.os,
+//           purchase_date: asset.purchase_date,
+//           disposed_location,
+//           disposed_by: disposed_by || "System Admin",
+//           disposed_date: new Date(),
+//           disposed_reason: disposed_reason || null,
+//         }, { transaction });
 
-        // If asset was allocated, update allocation
-        if (asset.status === "ALLOCATED") {
-          const allocation = await AssetAllocation.findOne({
-            where: {
-              asset_id: asset.asset_id,
-              return_date: null,
-            },
-            transaction,
-          });
+//         // If asset was allocated, update allocation
+//         if (asset.status === "ALLOCATED") {
+//           const allocation = await AssetAllocation.findOne({
+//             where: {
+//               asset_id: asset.asset_id,
+//               return_date: null,
+//             },
+//             transaction,
+//           });
 
-          if (allocation) {
-            await allocation.update({
-              return_date: new Date(),
-              return_remarks: `BULK DISPOSED: ${disposed_reason || "No reason provided"}`,
-            }, { transaction });
-          }
-        }
+//           if (allocation) {
+//             await allocation.update({
+//               return_date: new Date(),
+//               return_remarks: `BULK DISPOSED: ${disposed_reason || "No reason provided"}`,
+//             }, { transaction });
+//           }
+//         }
 
-        // Update asset status
-        await asset.update({ status: "RETIRED" }, { transaction });
+//         // Update asset status
+//         await asset.update({ status: "RETIRED" }, { transaction });
         
-        results.push({
-          asset_id: asset.asset_id,
-          serial_no: asset.serial_no,
-          status: "RETIRED",
-        });
+//         results.push({
+//           asset_id: asset.asset_id,
+//           serial_no: asset.serial_no,
+//           status: "RETIRED",
+//         });
 
-      } catch (error) {
-        errors.push({ asset_id, error: error.message });
-      }
-    }
+//       } catch (error) {
+//         errors.push({ asset_id, error: error.message });
+//       }
+//     }
 
-    await transaction.commit();
+//     await transaction.commit();
 
-    res.status(200).json({
-      success: true,
-      message: `Successfully disposed ${results.length} assets`,
-      data: {
-        disposed: results,
-        errors: errors,
-        total_requested: asset_ids.length,
-        total_disposed: results.length,
-        total_errors: errors.length,
-      },
-    });
+//     res.status(200).json({
+//       success: true,
+//       message: `Successfully disposed ${results.length} assets`,
+//       data: {
+//         disposed: results,
+//         errors: errors,
+//         total_requested: asset_ids.length,
+//         total_disposed: results.length,
+//         total_errors: errors.length,
+//       },
+//     });
 
-  } catch (error) {
-    await transaction.rollback();
-    console.error("Error bulk disposing assets:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error bulk disposing assets",
-      error: error.message,
-    });
-  }
-};
+//   } catch (error) {
+//     await transaction.rollback();
+//     console.error("Error bulk disposing assets:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Error bulk disposing assets",
+//       error: error.message,
+//     });
+//   }
+// };
 
 // Restore asset from disposed status
 exports.restoreAsset = async (req, res) => {
@@ -2198,90 +2239,90 @@ exports.getAllocationSummary = async (req, res) => {
   }
 };
 
-// Get dashboard statistics
-exports.getDashboardStatistics = async (req, res) => {
-  try {
-    // Get all assets
-    const allAssets = await Asset.findAll();
+// // Get dashboard statistics
+// exports.getDashboardStatistics = async (req, res) => {
+//   try {
+//     // Get all assets
+//     const allAssets = await Asset.findAll();
     
-    // Calculate total assets by status
-    const totalAssets = allAssets.length;
-    const availableAssets = allAssets.filter(a => a.status === "AVAILABLE").length;
-    const allocatedAssets = allAssets.filter(a => a.status === "ALLOCATED").length;
-    const underRepairAssets = allAssets.filter(a => a.status === "UNDER_REPAIR").length;
-    const retiredAssets = allAssets.filter(a => a.status === "RETIRED").length;
+//     // Calculate total assets by status
+//     const totalAssets = allAssets.length;
+//     const availableAssets = allAssets.filter(a => a.status === "AVAILABLE").length;
+//     const allocatedAssets = allAssets.filter(a => a.status === "ALLOCATED").length;
+//     const underRepairAssets = allAssets.filter(a => a.status === "UNDER_REPAIR").length;
+//     const retiredAssets = allAssets.filter(a => a.status === "RETIRED").length;
     
-    // Calculate assets by type
-    const assetsByType = {
-      laptop: allAssets.filter(a => a.asset_type === "Laptop").length,
-      desktop: allAssets.filter(a => a.asset_type === "Desktop PC").length,
-      monitor: allAssets.filter(a => a.asset_type === "Monitor").length,
-      printer: allAssets.filter(a => a.asset_type === "Printer").length,
-      other: allAssets.filter(a => a.asset_type === "Other").length
-    };
+//     // Calculate assets by type
+//     const assetsByType = {
+//       laptop: allAssets.filter(a => a.asset_type === "Laptop").length,
+//       desktop: allAssets.filter(a => a.asset_type === "Desktop PC").length,
+//       monitor: allAssets.filter(a => a.asset_type === "Monitor").length,
+//       printer: allAssets.filter(a => a.asset_type === "Printer").length,
+//       other: allAssets.filter(a => a.asset_type === "Other").length
+//     };
     
-    // Get allocation statistics
-    const totalAllocations = await AssetAllocation.count();
-    const activeAllocations = await AssetAllocation.count({ 
-      where: { return_date: null } 
-    });
-    const completedAllocations = await AssetAllocation.count({ 
-      where: { return_date: { [Op.ne]: null } } 
-    });
+//     // Get allocation statistics
+//     const totalAllocations = await AssetAllocation.count();
+//     const activeAllocations = await AssetAllocation.count({ 
+//       where: { return_date: null } 
+//     });
+//     const completedAllocations = await AssetAllocation.count({ 
+//       where: { return_date: { [Op.ne]: null } } 
+//     });
     
-    // Get assets with expiring warranty (next 3 months)
-    const today = new Date();
-    const threeMonthsLater = new Date();
-    threeMonthsLater.setMonth(today.getMonth() + 3);
+//     // Get assets with expiring warranty (next 3 months)
+//     const today = new Date();
+//     const threeMonthsLater = new Date();
+//     threeMonthsLater.setMonth(today.getMonth() + 3);
     
-    const expiringWarrantyAssets = await Asset.findAll({
-      where: {
-        warranty_end_date: {
-          [Op.ne]: null,
-          [Op.between]: [today, threeMonthsLater]
-        },
-        status: {
-          [Op.ne]: "RETIRED"
-        }
-      },
-      attributes: ["asset_id", "serial_no", "asset_type", "brand", "model", "warranty_end_date"]
-    });
+//     const expiringWarrantyAssets = await Asset.findAll({
+//       where: {
+//         warranty_end_date: {
+//           [Op.ne]: null,
+//           [Op.between]: [today, threeMonthsLater]
+//         },
+//         status: {
+//           [Op.ne]: "RETIRED"
+//         }
+//       },
+//       attributes: ["asset_id", "serial_no", "asset_type", "brand", "model", "warranty_end_date"]
+//     });
     
-    // Get recent allocations (last 5)
-    const recentAllocations = await AssetAllocation.findAll({
-      limit: 5,
-      order: [["allocated_date", "DESC"]],
-      include: [
-        { model: Asset, as: "asset", attributes: ["brand", "model", "asset_type"] },
-        { model: Branch, as: "branch", attributes: ["location"] },
-        { model: Department, as: "department", attributes: ["department_name"] }
-      ]
-    });
+//     // Get recent allocations (last 5)
+//     const recentAllocations = await AssetAllocation.findAll({
+//       limit: 5,
+//       order: [["allocated_date", "DESC"]],
+//       include: [
+//         { model: Asset, as: "asset", attributes: ["brand", "model", "asset_type"] },
+//         { model: Branch, as: "branch", attributes: ["location"] },
+//         { model: Department, as: "department", attributes: ["department_name"] }
+//       ]
+//     });
     
-    res.status(200).json({
-      success: true,
-      data: {
-        total_assets: totalAssets,
-        available_assets: availableAssets,
-        allocated_assets: allocatedAssets,
-        under_repair_assets: underRepairAssets,
-        retired_assets: retiredAssets,
-        assets_by_type: assetsByType,
-        total_allocations: totalAllocations,
-        active_allocations: activeAllocations,
-        completed_allocations: completedAllocations,
-        expiring_warranty_count: expiringWarrantyAssets.length,
-        expiring_warranty_assets: expiringWarrantyAssets,
-        recent_allocations: recentAllocations
-      }
-    });
+//     res.status(200).json({
+//       success: true,
+//       data: {
+//         total_assets: totalAssets,
+//         available_assets: availableAssets,
+//         allocated_assets: allocatedAssets,
+//         under_repair_assets: underRepairAssets,
+//         retired_assets: retiredAssets,
+//         assets_by_type: assetsByType,
+//         total_allocations: totalAllocations,
+//         active_allocations: activeAllocations,
+//         completed_allocations: completedAllocations,
+//         expiring_warranty_count: expiringWarrantyAssets.length,
+//         expiring_warranty_assets: expiringWarrantyAssets,
+//         recent_allocations: recentAllocations
+//       }
+//     });
     
-  } catch (error) {
-    console.error("Error fetching dashboard statistics:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error fetching dashboard statistics",
-      error: error.message
-    });
-  }
-};
+//   } catch (error) {
+//     console.error("Error fetching dashboard statistics:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Error fetching dashboard statistics",
+//       error: error.message
+//     });
+//   }
+// };
